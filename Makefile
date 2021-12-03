@@ -13,7 +13,7 @@ endif
 .PHONY: prereqs
 prereqs:
 	@echo "### Test if prerequisites are met, and installing missing dependencies"
-	test -f $(go env GOPATH)/bin/golangci-lint || go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
+	test -f $(go env GOPATH)/bin/golangci-lint || GOFLAGS="" go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
 
 .PHONY: vendors
 vendors:
