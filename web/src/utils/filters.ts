@@ -3,6 +3,7 @@ import protocols from 'protocol-numbers';
 import { getPort } from 'port-numbers';
 import { ColumnsId } from './columns';
 import { getProtectedService } from './port';
+import { autoCompleteCache } from './autocomplete-cache';
 
 export enum FilterType {
   NONE,
@@ -12,8 +13,7 @@ export enum FilterType {
   PROTOCOL,
   NUMBER,
   K8S_NAMES,
-  KIND_NAMESPACE_NAME,
-  K8S_OBJECT,
+  CANONICAL_PATH,
   NAMESPACE,
   KIND
 }
@@ -33,7 +33,7 @@ export interface FilterOption {
   value: string;
 }
 
-export const getFilterOption = (name: string): FilterOption => {
+export const toFilterOption = (name: string): FilterOption => {
   return { name, value: name };
 };
 
@@ -53,69 +53,51 @@ const getProtocolOptions = (value: string) => {
   );
 };
 
-const namespaces: Set<FilterOption> = new Set<FilterOption>();
-
-export const clearNamespaces = () => {
-  namespaces.clear();
-};
-
-export const setNamespaces = (ns: string[]) => {
-  namespaces.clear();
-  ns.forEach(n => namespaces.add(getFilterOption(n)));
-};
-
-const objectsMap: Map<string, FilterOption[]> = new Map<string, FilterOption[]>();
-
-export const clearPods = () => {
-  objectsMap.clear();
-};
-
-export const hasPods = (namespace: string) => {
-  return objectsMap.has(namespace);
-};
-
-export const setObjects = (kindNamespace: string, objects: string[]) => {
-  const options = objects.map(p => getFilterOption(p));
-  objectsMap.set(kindNamespace, options);
-};
-
-export const hasNamespace = (namespace: string) => {
-  return Array.from(namespaces.values()).find(n => n.name === namespace) != undefined;
-};
-
-export const getNamespaceOptions = (value: string) => {
-  const options = Array.from(namespaces.values());
-  if (value.length) {
+export const getNamespaceOptions = (value: string): FilterOption[] => {
+  const options = autoCompleteCache.getNamespaces().map(toFilterOption);
+  if (value) {
     return options.filter(n => n.name.toLowerCase().startsWith(value.toLowerCase()));
   } else {
     return options;
   }
 };
 
-export const getObjectsOptions = (filterValue: string) => {
-  // search objects by namespace
-  if (filterValue.includes('.')) {
-    const kindNamespaceAndPod = filterValue.split('.');
-    const pods = objectsMap.get(`${kindNamespaceAndPod[0]}.${kindNamespaceAndPod[1]}`);
-    if (!pods) {
-      return [];
-    } else if (kindNamespaceAndPod[1]) {
-      // search all pods in namespace in cache
-      return pods.filter(p =>
-        p.name.toLowerCase().startsWith(kindNamespaceAndPod[kindNamespaceAndPod.length - 1].toLowerCase())
-      );
-    } else {
-      // directly show pods for "namespace & pod" when namespace is set
-      return pods;
-    }
-  } else if (filterValue.length) {
-    // search all objects in cache
-    return Array.from(objectsMap.values())
-      .flat()
-      .filter(p => p.name.toLowerCase().startsWith(filterValue.toLowerCase()));
+export const getKindOptions = (value: string): FilterOption[] => {
+  const options = autoCompleteCache.getKinds().map(toFilterOption);
+  if (value) {
+    return options.filter(n => n.name.toLowerCase().startsWith(value.toLowerCase()));
   } else {
-    // don't show list if field is empty
-    return [];
+    return options;
+  }
+};
+
+type SplitCanonicalPath = { kind: string; namespace: string; name: string };
+
+export const splitCanonicalPath = (path: string): SplitCanonicalPath => {
+  const parts = path.split('.');
+  if (parts.length === 1) {
+    return { kind: parts[0], namespace: '', name: '' };
+  } else if (parts.length === 2) {
+    return { kind: parts[0], namespace: parts[1], name: '' };
+  }
+  return { kind: parts[0], namespace: parts[1], name: parts[2] };
+};
+
+export const getCanonicalPathOptions = (filterValue: string) => {
+  const parts = splitCanonicalPath(filterValue);
+  if (!parts.name && !parts.namespace) {
+    // show kinds
+    return getKindOptions(parts.kind);
+  } else if (!parts.name) {
+    // show namespaces
+    return getNamespaceOptions(parts.namespace);
+  }
+  // show names
+  const options = (autoCompleteCache.getNames(parts.kind, parts.namespace) || []).map(toFilterOption);
+  if (parts.name) {
+    return options.filter(n => n.name.toLowerCase().startsWith(parts.name.toLowerCase()));
+  } else {
+    return options;
   }
 };
 
@@ -131,19 +113,12 @@ const getPortOptions = (value: string) => {
   return [];
 };
 
-const getK8SKindOptions = (value: string) => {
-  return ['Pod', 'Service', 'Deployment', 'StatefulSet', 'DaemonSet', 'Job', 'CronJob']
-    .filter(k => k.toLowerCase().startsWith(value.toLowerCase()))
-    .map(p => getFilterOption(p));
-};
-
 const filterOptions: Map<FilterType, (value: string) => FilterOption[]> = new Map([
   [FilterType.PROTOCOL, getProtocolOptions],
   [FilterType.PORT, getPortOptions],
-  [FilterType.KIND_NAMESPACE_NAME, getK8SKindOptions],
-  [FilterType.KIND, getK8SKindOptions],
-  [FilterType.NAMESPACE, getNamespaceOptions],
-  [FilterType.K8S_OBJECT, getObjectsOptions] //must filter by namespace first, else it will be empty
+  [FilterType.CANONICAL_PATH, getCanonicalPathOptions],
+  [FilterType.KIND, getKindOptions],
+  [FilterType.NAMESPACE, getNamespaceOptions]
 ]);
 
 export const getFilterOptions = (type: FilterType, value: string, max = 10) => {

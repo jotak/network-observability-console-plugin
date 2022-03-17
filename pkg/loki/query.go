@@ -4,7 +4,6 @@ package loki
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,7 +15,6 @@ import (
 )
 
 const (
-	queryParam      = "query"
 	startTimeKey    = "startTime"
 	endTimeTimeKey  = "endTime"
 	timeRangeKey    = "timeRange"
@@ -29,6 +27,7 @@ const (
 	matchParam      = "match"
 	flowDirParam    = "FlowDirection"
 	anyMatchValue   = "any"
+	queryRangePath  = "/loki/api/v1/query_range?query="
 )
 
 var qlog = logrus.WithField("component", "loki.query")
@@ -51,7 +50,7 @@ const (
 // The HTTP body of the query is composed by:
 // {streamSelector}|lineFilters|json|labelFilters
 type Query struct {
-	// urlParams for the HTTP call
+	baseURL             string
 	urlParams           [][2]string
 	labelMap            map[string]struct{}
 	streamSelector      []labelFilter
@@ -70,12 +69,13 @@ type Export struct {
 	columns []string
 }
 
-func NewQuery(labels []string, export bool) *Query {
+func NewQuery(baseURL string, labels []string, export bool) *Query {
 	var exp *Export
 	if export {
 		exp = &Export{}
 	}
 	return &Query{
+		baseURL:             baseURL,
 		specialAttrs:        map[string]string{},
 		labelJoiner:         joinPipeAnd,
 		export:              exp,
@@ -89,7 +89,9 @@ func (q *Query) URLQuery() (string, error) {
 		return "", errors.New("there is no stream selector. At least one label matcher is needed")
 	}
 	sb := strings.Builder{}
-	sb.WriteString(queryParam + "={")
+	sb.WriteString(strings.TrimRight(q.baseURL, "/"))
+	sb.WriteString(queryRangePath)
+	sb.WriteString("{")
 	for i, ss := range q.streamSelector {
 		if i > 0 {
 			sb.WriteByte(',')
@@ -141,7 +143,7 @@ func (q *Query) WriteLabelFilter(sb *strings.Builder, lfs *[]labelFilter, lj Lab
 	}
 }
 
-func (q *Query) AddParams(params url.Values) error {
+func (q *Query) AddParams(params map[string][]string) error {
 	for key, values := range params {
 		if len(values) == 0 {
 			// Silently ignore
@@ -179,8 +181,8 @@ func (q *Query) AddParam(key, value string) error {
 	// IP filter labels
 	case "DstAddr", "SrcAddr", "DstK8S_HostIP", "SrcK8S_HostIP":
 		q.processIPFilters(key, strings.Split(value, ","))
-	case "K8S_Object", "SrcK8S_Object", "DstK8S_Object", "K8S_OwnerObject", "SrcK8S_OwnerObject", "DstK8S_OwnerObject":
-		return q.processK8SObjectFilter(key, strings.Split(value, ","))
+	case "CanonicalPath", "SrcCanonicalPath", "DstCanonicalPath":
+		return q.processCanonicalPathFilter(key, strings.Split(value, ","))
 	case "AddrPort", "SrcAddrPort", "DstAddrPort":
 		q.processAddressPortFilter(key, strings.Split(value, ","))
 	default:
@@ -397,7 +399,7 @@ func (q *Query) processCommonLabelFilter(key string, values []string) {
 	}
 }
 
-func (q *Query) processK8SObjectFilter(key string, values []string) error {
+func (q *Query) processCanonicalPathFilter(key string, values []string) error {
 	prefix := ""
 	if strings.HasPrefix(key, "Src") {
 		prefix = "Src"
@@ -407,19 +409,20 @@ func (q *Query) processK8SObjectFilter(key string, values []string) error {
 
 	for _, value := range values {
 		//expected value is Kind.Namespace.ObjectName
-		if strings.Contains(value, ".") {
-			splittedValue := strings.Split(value, ".")
-			if strings.Contains(key, "Owner") {
-				q.AddParamSrcDst(prefix, "K8S_OwnerType", splittedValue[0])
-				q.AddParamSrcDst(prefix, "K8S_Namespace", splittedValue[1])
-				q.AddParamSrcDst(prefix, "K8S_OwnerName", splittedValue[2])
-			} else {
-				q.AddParamSrcDst(prefix, "K8S_Type", splittedValue[0])
-				q.AddParamSrcDst(prefix, "K8S_Namespace", splittedValue[1])
-				q.AddParamSrcDst(prefix, "K8S_Name", splittedValue[2])
-			}
+		parts := strings.Split(value, ".")
+		if len(parts) != 3 {
+			return fmt.Errorf("invalid canonical path filter: %s", value)
+		}
+		kind := parts[0]
+		ns := parts[1]
+		name := parts[2]
+		q.AddParamSrcDst(prefix, "K8S_Namespace", ns)
+		if utils.IsOwnerKind(kind) {
+			q.AddParamSrcDst(prefix, "K8S_OwnerType", kind)
+			q.AddParamSrcDst(prefix, "K8S_OwnerName", name)
 		} else {
-			return fmt.Errorf("invalid kubeObject filter: %s", value)
+			q.AddParamSrcDst(prefix, "K8S_Type", kind)
+			q.AddParamSrcDst(prefix, "K8S_Name", name)
 		}
 	}
 	return nil

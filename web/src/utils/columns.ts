@@ -18,9 +18,9 @@ export enum ColumnsId {
   name = 'K8S_Name',
   srcname = 'SrcK8S_Name',
   dstname = 'DstK8S_Name',
-  kubeobject = 'K8S_Object',
-  srckubeobject = 'SrcK8S_Object',
-  dstkubeobject = 'DstK8S_Object',
+  canonicalpath = 'CanonicalPath',
+  srccanonicalpath = 'SrcCanonicalPath',
+  dstcanonicalpath = 'DstCanonicalPath',
   addr = 'Addr',
   srcaddr = 'SrcAddr',
   dstaddr = 'DstAddr',
@@ -39,9 +39,6 @@ export enum ColumnsId {
   ownertype = 'K8S_OwnerType',
   srcownertype = 'SrcK8S_OwnerType',
   dstownertype = 'DstK8S_OwnerType',
-  ownerkubeobject = 'K8S_OwnerObject',
-  srcownerkubeobject = 'SrcK8S_OwnerObject',
-  dstownerkubeobject = 'DstK8S_OwnerObject',
   host = 'K8S_HostIP',
   srchost = 'SrcK8S_HostIP',
   dsthost = 'DstK8S_HostIP',
@@ -221,10 +218,10 @@ export const getCommonColumns = (t: TFunction, withConcatenatedFields = true): C
     return [
       ...commonColumns,
       {
-        id: ColumnsId.kubeobject,
-        name: t('Kubernetes Objects'),
+        id: ColumnsId.canonicalpath,
+        name: t('Source to Destination'),
         isSelected: false,
-        filterType: FilterType.KIND_NAMESPACE_NAME,
+        filterType: FilterType.CANONICAL_PATH,
         value: f => [
           ...getConcatenatedValue(
             f.fields.SrcAddr,
@@ -240,42 +237,6 @@ export const getCommonColumns = (t: TFunction, withConcatenatedFields = true): C
             f.labels.DstK8S_Namespace,
             f.fields.DstK8S_Name
           )
-        ],
-        sort: (a, b, col) => compareStrings((col.value(a) as string[]).join(''), (col.value(b) as string[]).join('')),
-        width: 15
-      },
-      {
-        id: ColumnsId.ownerkubeobject,
-        name: t('Owner Kubernetes Objects'),
-        isSelected: false,
-        filterType: FilterType.KIND_NAMESPACE_NAME,
-        value: f => [
-          ...getConcatenatedValue(
-            f.fields.SrcAddr,
-            f.fields.SrcPort,
-            f.fields.SrcK8S_OwnerType,
-            f.labels.SrcK8S_Namespace,
-            f.labels.SrcK8S_OwnerName
-          ),
-          ...getConcatenatedValue(
-            f.fields.DstAddr,
-            f.fields.DstPort,
-            f.fields.DstK8S_OwnerType,
-            f.labels.DstK8S_Namespace,
-            f.labels.DstK8S_OwnerName
-          )
-        ],
-        sort: (a, b, col) => compareStrings((col.value(a) as string[]).join(''), (col.value(b) as string[]).join('')),
-        width: 15
-      },
-      {
-        id: ColumnsId.addrport,
-        name: t('Addresses & Ports'),
-        isSelected: false,
-        filterType: FilterType.ADDRESS_PORT,
-        value: f => [
-          ...getConcatenatedValue(f.fields.SrcAddr, f.fields.SrcPort),
-          ...getConcatenatedValue(f.fields.DstAddr, f.fields.DstPort)
         ],
         sort: (a, b, col) => compareStrings((col.value(a) as string[]).join(''), (col.value(b) as string[]).join('')),
         width: 15
@@ -477,11 +438,10 @@ export const getSrcDstColumns = (t: TFunction, withConcatenatedFields = true): C
     return [
       ...getSrcColumns(t),
       {
-        id: ColumnsId.srckubeobject,
-        group: t('Source'),
-        name: t('Kubernetes Object'),
+        id: ColumnsId.srccanonicalpath,
+        name: t('Source'),
         isSelected: false,
-        filterType: FilterType.KIND_NAMESPACE_NAME,
+        filterType: FilterType.CANONICAL_PATH,
         value: f =>
           getConcatenatedValue(
             f.fields.SrcAddr,
@@ -493,40 +453,12 @@ export const getSrcDstColumns = (t: TFunction, withConcatenatedFields = true): C
         sort: (a, b, col) => compareStrings(col.value(a) as string, col.value(b) as string),
         width: 15
       },
-      {
-        id: ColumnsId.srcownerkubeobject,
-        group: t('Source'),
-        name: t('Owner Kubernetes Object'),
-        isSelected: false,
-        filterType: FilterType.KIND_NAMESPACE_NAME,
-        value: f =>
-          getConcatenatedValue(
-            f.fields.SrcAddr,
-            f.fields.SrcPort,
-            f.fields.SrcK8S_OwnerType,
-            f.labels.SrcK8S_Namespace,
-            f.labels.SrcK8S_OwnerName
-          ),
-        sort: (a, b, col) => compareStrings(col.value(a) as string, col.value(b) as string),
-        width: 15
-      },
-      {
-        id: ColumnsId.srcaddrport,
-        group: t('Source'),
-        name: t('Address & Port'),
-        isSelected: false,
-        filterType: FilterType.ADDRESS_PORT,
-        value: f => getConcatenatedValue(f.fields.SrcAddr, f.fields.SrcPort),
-        sort: (a, b, col) => compareStrings(col.value(a) as string, col.value(b) as string),
-        width: 15
-      },
       ...getDstColumns(t),
       {
-        id: ColumnsId.dstkubeobject,
-        group: t('Destination'),
-        name: t('Kubernetes Object'),
+        id: ColumnsId.dstcanonicalpath,
+        name: t('Destination'),
         isSelected: false,
-        filterType: FilterType.KIND_NAMESPACE_NAME,
+        filterType: FilterType.CANONICAL_PATH,
         value: f =>
           getConcatenatedValue(
             f.fields.DstAddr,
@@ -535,33 +467,6 @@ export const getSrcDstColumns = (t: TFunction, withConcatenatedFields = true): C
             f.labels.DstK8S_Namespace,
             f.fields.DstK8S_Name
           ),
-        sort: (a, b, col) => compareStrings(col.value(a) as string, col.value(b) as string),
-        width: 15
-      },
-      {
-        id: ColumnsId.dstownerkubeobject,
-        group: t('Destination'),
-        name: t('Owner Kubernetes Object'),
-        isSelected: false,
-        filterType: FilterType.KIND_NAMESPACE_NAME,
-        value: f =>
-          getConcatenatedValue(
-            f.fields.DstAddr,
-            f.fields.DstPort,
-            f.fields.DstK8S_OwnerType,
-            f.labels.DstK8S_Namespace,
-            f.labels.DstK8S_OwnerName
-          ),
-        sort: (a, b, col) => compareStrings(col.value(a) as string, col.value(b) as string),
-        width: 15
-      },
-      {
-        id: ColumnsId.dstaddrport,
-        group: t('Destination'),
-        name: t('Address & Port'),
-        isSelected: false,
-        filterType: FilterType.ADDRESS_PORT,
-        value: f => getConcatenatedValue(f.fields.DstAddr, f.fields.DstPort),
         sort: (a, b, col) => compareStrings(col.value(a) as string, col.value(b) as string),
         width: 15
       }

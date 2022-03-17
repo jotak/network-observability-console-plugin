@@ -16,3 +16,16 @@ func GetMapInterface(s []string) map[string]struct{} {
 	}
 	return res
 }
+
+func AddToMapInterface(m map[string]struct{}, s []string) {
+	for _, a := range s {
+		m[a] = struct{}{}
+	}
+}
+
+func IsOwnerKind(kind string) bool {
+	if kind == "Pod" || kind == "Service" || kind == "Node" {
+		return false
+	}
+	return true
+}

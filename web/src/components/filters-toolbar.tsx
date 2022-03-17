@@ -34,8 +34,6 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Column, ColumnGroup, ColumnsId, getColumnGroups, getFullColumnName } from '../utils/columns';
 import {
-  clearNamespaces,
-  clearPods as clearObjects,
   createFilterValue,
   Filter,
   FilterOption,
@@ -43,10 +41,7 @@ import {
   FilterValue,
   findProtocolOption,
   getFilterOptions,
-  hasNamespace,
-  hasPods as hasObjects,
-  setNamespaces,
-  setObjects
+  splitCanonicalPath
 } from '../utils/filters';
 import './filters-toolbar.css';
 import { validateIPFilter } from '../utils/ip';
@@ -55,9 +50,10 @@ import { QueryOptionsDropdown } from './dropdowns/query-options-dropdown';
 import { getPathWithParams, NETFLOW_TRAFFIC_PATH } from '../utils/router';
 import { useHistory } from 'react-router-dom';
 import { validateK8SName } from '../utils/label';
-import { getNamespaces, getResources } from '../api/routes';
+import { getKinds, getNamespaces, getResources } from '../api/routes';
 import { getHTTPErrorDetails } from '../utils/errors';
 import { FilterHints } from './filter-hints';
+import { autoCompleteCache } from '../utils/autocomplete-cache';
 
 export interface FiltersToolbarProps {
   id: string;
@@ -119,30 +115,22 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
     setPopperVisible(options.length > 0);
   };
 
-  const manageKindsAutoComplete = React.useCallback((kindNamespacePod: string, suggest = true) => {
-    const split = kindNamespacePod.split('.');
-    const kind = split[0];
-    const namespace = split[1];
-    if (namespace && hasNamespace(namespace)) {
-      const key = `${kind}.${namespace}`;
-      if (!hasObjects(key)) {
-        getResources(kind, namespace).then(pods => {
-          setObjects(key, pods);
-          if (suggest) {
-            manageAutoCompleteOptions(getFilterOptions(FilterType.K8S_OBJECT, kindNamespacePod));
-          }
-        });
-      } else if (suggest) {
-        manageAutoCompleteOptions(getFilterOptions(FilterType.K8S_OBJECT, kindNamespacePod));
-      }
+  const autoCompleteCanonicalPath = React.useCallback((canonicalPath: string) => {
+    const parts = splitCanonicalPath(canonicalPath);
+    const names = autoCompleteCache.getNames(parts.kind, parts.namespace);
+    if (names === undefined) {
+      getResources(parts.namespace, parts.kind).then(values => {
+        autoCompleteCache.setNames(parts.kind, parts.namespace, values);
+        manageAutoCompleteOptions(getFilterOptions(FilterType.CANONICAL_PATH, canonicalPath));
+      });
     } else {
-      manageAutoCompleteOptions(getFilterOptions(FilterType.NAMESPACE, namespace ? namespace : ''));
+      manageAutoCompleteOptions(getFilterOptions(FilterType.CANONICAL_PATH, canonicalPath));
     }
   }, []);
 
   const onAutoCompleteChange = (newValue: string) => {
-    if (selectedFilterColumn.filterType === FilterType.KIND_NAMESPACE_NAME && newValue.includes('.')) {
-      manageKindsAutoComplete(newValue);
+    if (selectedFilterColumn.filterType === FilterType.CANONICAL_PATH) {
+      autoCompleteCanonicalPath(newValue);
     } else {
       const options = getFilterOptions(selectedFilterColumn.filterType, newValue);
       manageAutoCompleteOptions(options);
@@ -187,9 +175,6 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
         case FilterType.NAMESPACE:
         case FilterType.K8S_NAMES:
           return value === '""' || validateK8SName(value) ? { val: value } : { err: t('Not a valid Kubernetes name') };
-        case FilterType.KIND:
-        case FilterType.KIND_NAMESPACE_NAME:
-          return { err: t('You must select an existing kubernetes object from autocomplete') };
         default:
           return { val: value };
       }
@@ -252,9 +237,9 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
     [columns, filters, setFilters, resetFilterValue, setMessageWithDelay, t]
   );
 
-  const manageAutoCompleteOption = React.useCallback(
+  const onAutoCompleteOptionSelected = React.useCallback(
     (option: FilterOption) => {
-      if (selectedFilterColumn.filterType === FilterType.KIND_NAMESPACE_NAME) {
+      if (selectedFilterColumn.filterType === FilterType.CANONICAL_PATH) {
         if (selectedFilterValue.includes('.')) {
           const split = selectedFilterValue.split('.');
           if (split.length === 3) {
@@ -263,12 +248,12 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
           } else {
             const kindNamespaceDot = `${split[0]}.${option.name}.`;
             setSelectedFilterValue(kindNamespaceDot);
-            manageKindsAutoComplete(kindNamespaceDot);
+            autoCompleteCanonicalPath(kindNamespaceDot);
           }
         } else {
-          const namespaceDot = option.name + '.';
-          setSelectedFilterValue(namespaceDot);
-          manageKindsAutoComplete(namespaceDot);
+          const kindDot = option.name + '.';
+          setSelectedFilterValue(kindDot);
+          autoCompleteCanonicalPath(kindDot);
         }
         searchInputRef?.current?.focus();
         return;
@@ -277,7 +262,13 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
       }
       resetAutocompleteOptions();
     },
-    [addFilter, manageKindsAutoComplete, selectedFilterColumn.filterType, selectedFilterColumn.id, selectedFilterValue]
+    [
+      addFilter,
+      autoCompleteCanonicalPath,
+      selectedFilterColumn.filterType,
+      selectedFilterColumn.id,
+      selectedFilterValue
+    ]
   );
 
   const onAutoCompleteSelect = React.useCallback(
@@ -287,9 +278,9 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
       if (!option) {
         return;
       }
-      manageAutoCompleteOption(option);
+      onAutoCompleteOptionSelected(option);
     },
-    [autocompleteOptions, manageAutoCompleteOption]
+    [autocompleteOptions, onAutoCompleteOptionSelected]
   );
 
   const resetAutocompleteOptions = () => {
@@ -300,7 +291,7 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
   const manageFilters = React.useCallback(() => {
     // Only one choice is present, consider this is what is desired
     if (autocompleteOptions.length === 1) {
-      manageAutoCompleteOption(autocompleteOptions[0]);
+      onAutoCompleteOptionSelected(autocompleteOptions[0]);
       return;
     }
 
@@ -324,20 +315,16 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
     selectedFilterValue,
     selectedFilterColumn.filterType,
     selectedFilterColumn.id,
-    manageAutoCompleteOption,
+    onAutoCompleteOptionSelected,
     setMessageWithDelay,
     addFilter
   ]);
 
-  /*TODO: check if we can do autocomplete for pod / namespace fields
-   * as implemented for protocols
-   */
   const getFilterControl = (col: Column) => {
     switch (col.filterType) {
       case FilterType.KIND:
       case FilterType.NAMESPACE:
-      case FilterType.K8S_OBJECT:
-      case FilterType.KIND_NAMESPACE_NAME:
+      case FilterType.CANONICAL_PATH:
       case FilterType.PORT:
       case FilterType.PROTOCOL:
         return (
@@ -451,44 +438,41 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
     ];
   };
 
-  const manageCache = () => {
+  const refreshNamespaces = () => {
+    getNamespaces()
+      .then(ns => {
+        autoCompleteCache.setNamespaces(ns);
+      })
+      .catch(err => {
+        const errorMessage = getHTTPErrorDetails(err);
+        setMessageWithDelay(errorMessage);
+      });
+  };
+
+  const refreshKinds = () => {
+    getKinds()
+      .then(ks => {
+        autoCompleteCache.setKinds(ks);
+      })
+      .catch(err => {
+        const errorMessage = getHTTPErrorDetails(err);
+        setMessageWithDelay(errorMessage);
+      });
+  };
+
+  const refreshCache = () => {
+    autoCompleteCache.clear();
     switch (selectedFilterColumn.filterType) {
-      case FilterType.KIND_NAMESPACE_NAME:
-      case FilterType.NAMESPACE:
-        // refresh available namespaces and clear pods
-        getNamespaces()
-          .then(ns => {
-            setNamespaces(ns);
-          })
-          .catch(err => {
-            const errorMessage = getHTTPErrorDetails(err);
-            setMessageWithDelay(errorMessage);
-          });
-        clearObjects();
+      case FilterType.CANONICAL_PATH:
+        // refresh available namespaces, kinds and clear names
+        refreshNamespaces();
+        refreshKinds();
         break;
-      /*case FilterType.POD:
-        //clear all objects
-        clearObjects();
-
-        // get namespaces from filters
-        let values: FilterValue[] | undefined = undefined;
-        if (selectedFilterColumn.id === ColumnsId.srcpod) {
-          values = filters?.find(f => f.colId === ColumnsId.srcnamespace)?.values;
-        } else if (selectedFilterColumn.id === ColumnsId.dstpod) {
-          values = filters?.find(f => f.colId === ColumnsId.dstnamespace)?.values;
-        } else {
-          values = filters?.find(f => f.colId === ColumnsId.namespace)?.values;
-        }
-
-        //set pods for each namespace found
-        values?.forEach(v => {
-          manageKindsAutoComplete(`Pod.${v.v}.`, false);
-        });
-        break;*/
-      default:
-        //clear all
-        clearNamespaces();
-        clearObjects();
+      case FilterType.NAMESPACE:
+        refreshNamespaces();
+        break;
+      case FilterType.KIND:
+        refreshKinds();
         break;
     }
   };
@@ -496,7 +480,7 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
   React.useEffect(() => {
     resetFilterValue();
     searchInputRef?.current?.focus();
-    manageCache();
+    refreshCache();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFilterColumn]);
 
@@ -517,7 +501,7 @@ export const FiltersToolbar: React.FC<FiltersToolbarProps> = ({
       id={id}
       clearAllFilters={() => {
         clearFilters();
-        manageCache();
+        refreshCache();
       }}
       clearFiltersButtonText={hasFilterValue() ? t('Clear all filters') : ''}
     >

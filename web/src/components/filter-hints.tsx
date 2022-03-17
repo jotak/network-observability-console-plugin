@@ -34,7 +34,6 @@ export const FilterHints: React.FC<FilterHintsProps> = ({ type, name }) => {
         - ${t('A IANA name like TCP, UDP')}`;
       break;
     case FilterType.NAMESPACE:
-    case FilterType.K8S_OBJECT:
     case FilterType.K8S_NAMES:
       hint = t('Specify a single kubernetes name.');
       examples = `${t('Specify a single kubernetes name following these rules:')}
@@ -46,13 +45,13 @@ export const FilterHints: React.FC<FilterHintsProps> = ({ type, name }) => {
       - ${t('Ending text like "*-registry"')}
       - ${t('Pattern like "cluster-*-registry", "c*-*-r*y", -i*e-')}`;
       break;
-    case FilterType.KIND_NAMESPACE_NAME:
-      hint = t('Specify an existing object from its kind and namespace.');
+    case FilterType.CANONICAL_PATH:
+      hint = t('Specify an existing resource from its kind, namespace and name.');
       examples = `${t('Specify a kind, namespace and name from existing:')}
             - ${t('Select kind first from suggestions')}
             - ${t('Then Select namespace from suggestions')}
-            - ${t('Finally select object from suggestions')}
-            ${t('You can also directly specify a kind namespace and name like pod.openshift.apiserver')}`;
+            - ${t('Finally select name from suggestions')}
+            ${t('You can also directly specify a kind, namespace and name like pod.openshift.apiserver')}`;
       break;
     case FilterType.ADDRESS_PORT:
       hint = t('Specify a single address or range with port');
