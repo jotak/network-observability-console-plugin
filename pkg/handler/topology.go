@@ -6,14 +6,14 @@ import (
 	"github.com/netobserv/network-observability-console-plugin/pkg/loki"
 )
 
-func GetTopology(cfg LokiConfig) func(w http.ResponseWriter, r *http.Request) {
+func GetTopology(cfg loki.Config) func(w http.ResponseWriter, r *http.Request) {
 	lokiClient := newLokiClient(&cfg)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.Query()
 		hlog.Debugf("GetTopology query params: %s", params)
 
-		queryBuilder := loki.NewTopologyQuery(cfg.URL.String(), cfg.Labels)
+		queryBuilder := loki.NewTopologyQuery(&cfg)
 		if err := queryBuilder.AddParams(params); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return

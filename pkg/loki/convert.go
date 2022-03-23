@@ -24,7 +24,7 @@ func (q *Query) convertToAnyMatch() *Query {
 	}
 
 	out := Query{
-		baseURL:      q.baseURL,
+		config:       q.config,
 		urlParams:    q.urlParams,
 		labelJoiner:  joinOr,
 		specialAttrs: q.specialAttrs,

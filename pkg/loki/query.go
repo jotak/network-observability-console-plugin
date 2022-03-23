@@ -12,7 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/netobserv/network-observability-console-plugin/pkg/model/fields"
-	"github.com/netobserv/network-observability-console-plugin/pkg/utils"
 )
 
 const (
@@ -52,9 +51,8 @@ const (
 // {streamSelector}|lineFilters|json|labelFilters
 type Query struct {
 	// urlParams for the HTTP call
-	baseURL             string
+	config              *Config
 	urlParams           [][2]string
-	labelMap            map[string]struct{}
 	streamSelector      []labelFilter
 	lineFilters         []string
 	labelFilters        []labelFilter
@@ -71,17 +69,16 @@ type Export struct {
 	columns []string
 }
 
-func NewQuery(baseURL string, labels []string, export bool) *Query {
+func NewQuery(config *Config, export bool) *Query {
 	var exp *Export
 	if export {
 		exp = &Export{}
 	}
 	return &Query{
-		baseURL:             baseURL,
+		config:              config,
 		specialAttrs:        map[string]string{},
 		labelJoiner:         joinPipeAnd,
 		export:              exp,
-		labelMap:            utils.GetMapInterface(labels),
 		groupedLabelFilters: map[string][]labelFilter{},
 	}
 }
@@ -164,12 +161,12 @@ func (q *Query) addParamTime(value string) error {
 
 func (q *Query) addParamDefault(key, value string) error {
 	// Stream selector labels
-	if _, ok := q.labelMap[key]; ok {
+	if q.config.IsLabel(key) {
 		q.processStreamSelector(key, strings.Split(value, ","))
 	} else {
 		srcKey, dstKey := fields.ToSrcDst(key)
-		if _, ok := q.labelMap[srcKey]; ok {
-			if _, ok := q.labelMap[dstKey]; !ok {
+		if q.config.IsLabel(srcKey) {
+			if !q.config.IsLabel(dstKey) {
 				qlog.WithField("label", key).
 					Warningf("can't run common label filter as Src field is defined as a label, but Dst is not. Ignoring it")
 			} else {
@@ -200,7 +197,7 @@ func (q *Query) urlQueryParts() (string, string, string, string) {
 	jsonSb := strings.Builder{}
 	paramSb := strings.Builder{}
 
-	endpointSb.WriteString(strings.TrimRight(q.baseURL, "/"))
+	endpointSb.WriteString(strings.TrimRight(q.config.URL.String(), "/"))
 	endpointSb.WriteString(queryRangePath)
 	querySb.WriteByte('{')
 	for i, ss := range q.streamSelector {
@@ -269,12 +266,12 @@ func (q *Query) PrepareToSubmit() (*Query, error) {
 
 	// Append app stream selector, which will apply whichever matching criteria (any or all)
 	out.streamSelector = append(out.streamSelector,
-		stringLabelFilter("app", labelEqual, "netobserv-flowcollector"))
+		stringLabelFilter("app", "netobserv-flowcollector"))
 
 	// Filter by flow direction independently of the matching criteria (any or all)
 	if flowDir, ok := out.specialAttrs[flowDirParam]; ok {
 		out.streamSelector = append(out.streamSelector,
-			stringLabelFilter(flowDirParam, labelEqual, flowDir))
+			stringLabelFilter(flowDirParam, flowDir))
 	}
 	return out, nil
 }
@@ -309,10 +306,10 @@ func (q *Query) processStreamSelector(key string, values []string) {
 	if regexStr.Len() > 0 {
 		if q.currentGroup == nil {
 			q.streamSelector = append(q.streamSelector,
-				stringLabelFilter(key, labelMatches, regexStr.String()))
+				regexLabelFilter(key, regexStr.String()))
 		} else {
 			q.groupedLabelFilters[*q.currentGroup] = append(q.groupedLabelFilters[*q.currentGroup],
-				stringLabelFilter(key, labelMatches, regexStr.String()))
+				regexLabelFilter(key, regexStr.String()))
 		}
 	}
 }
@@ -357,7 +354,7 @@ func (q *Query) processLineFilters(key string, values []string) error {
 		//VALUE can be quoted for exact match or contains * to inject regex any
 		regexStr.WriteString(key)
 		regexStr.WriteString(`":`)
-		if isNumeric(key) {
+		if fields.IsNumeric(key) {
 			regexStr.WriteString(value)
 		} else {
 			regexStr.WriteString(`"`)
@@ -408,11 +405,11 @@ func (q *Query) processCommonLabelFilter(key string, values []string) {
 		}
 		// apply filter on both Src and Dst fields
 		if q.currentGroup == nil {
-			q.labelFilters = append(q.labelFilters, regexLabelFilter(srcKey, labelMatches, regexStr.String()))
-			q.labelFilters = append(q.labelFilters, regexLabelFilter(dstKey, labelMatches, regexStr.String()))
+			q.labelFilters = append(q.labelFilters, regexLabelFilter(srcKey, regexStr.String()))
+			q.labelFilters = append(q.labelFilters, regexLabelFilter(dstKey, regexStr.String()))
 		} else {
-			q.groupedLabelFilters[*q.currentGroup] = append(q.groupedLabelFilters[*q.currentGroup], regexLabelFilter(srcKey, labelMatches, regexStr.String()))
-			q.groupedLabelFilters[*q.currentGroup] = append(q.groupedLabelFilters[*q.currentGroup], regexLabelFilter(dstKey, labelMatches, regexStr.String()))
+			q.groupedLabelFilters[*q.currentGroup] = append(q.groupedLabelFilters[*q.currentGroup], regexLabelFilter(srcKey, regexStr.String()))
+			q.groupedLabelFilters[*q.currentGroup] = append(q.groupedLabelFilters[*q.currentGroup], regexLabelFilter(dstKey, regexStr.String()))
 		}
 	}
 }
@@ -486,20 +483,5 @@ func (q *Query) AddParamSrcDst(prefix, key, value string) {
 			qlog.Error(err)
 		}
 		q.currentGroup = nil
-	}
-}
-
-func isNumeric(v string) bool {
-	switch v {
-	case
-		fields.Port,
-		fields.SrcPort,
-		fields.DstPort,
-		fields.Packets,
-		fields.Proto,
-		fields.Bytes:
-		return true
-	default:
-		return false
 	}
 }

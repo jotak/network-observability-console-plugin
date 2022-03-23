@@ -31,16 +31,16 @@ type labelFilter struct {
 	valueType valueType
 }
 
-func stringLabelFilter(labelKey string, matcher labelMatcher, value string) labelFilter {
+func stringLabelFilter(labelKey string, value string) labelFilter {
 	return labelFilter{
 		key:       labelKey,
-		matcher:   matcher,
+		matcher:   labelEqual,
 		value:     value,
 		valueType: typeString,
 	}
 }
 
-func regexLabelFilter(labelKey string, matcher labelMatcher, value string) labelFilter {
+func regexLabelFilter(labelKey string, value string) labelFilter {
 	return labelFilter{
 		key:       labelKey,
 		matcher:   labelMatches,

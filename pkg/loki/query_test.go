@@ -1,7 +1,9 @@
 package loki
 
 import (
+	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,20 +16,24 @@ func TestQuery_ToURL_ConvertToAnyMatch(t *testing.T) {
 		expect    string
 		expectAny string
 	}
+	lokiURL, err := url.Parse("/")
+	require.NoError(t, err)
+	cfg := NewConfig(lokiURL, time.Second, "", []string{})
 	for _, tc := range []testCase{{
 		title: "streamSelector only",
-		in: Query{streamSelector: []labelFilter{
-			stringLabelFilter("app", labelEqual, "flows"),
-			stringLabelFilter("foo", labelMatches, ".*bar.*"),
-			stringLabelFilter("baz", labelMatches, ".*bae.*"),
+		in: Query{config: &cfg, streamSelector: []labelFilter{
+			stringLabelFilter("app", "flows"),
+			regexLabelFilter("foo", ".*bar.*"),
+			regexLabelFilter("baz", ".*bae.*"),
 		}},
 		expect:    `/loki/api/v1/query_range?query={app="flows",foo=~".*bar.*",baz=~".*bae.*"}`,
 		expectAny: `/loki/api/v1/query_range?query={dont="fail"}|json|app="flows"+or+foo=~".*bar.*"+or+baz=~".*bae.*"`,
 	}, {
 		title: "streamSelector with line filters",
 		in: Query{
+			config: &cfg,
 			streamSelector: []labelFilter{
-				stringLabelFilter("app", labelEqual, "netobs"),
+				stringLabelFilter("app", "netobs"),
 			},
 			lineFilters: []string{`"DstPort":1234`, `"Namespace":".*hiya`},
 		},
@@ -36,10 +42,11 @@ func TestQuery_ToURL_ConvertToAnyMatch(t *testing.T) {
 	}, {
 		title: "streamSelector with label filters",
 		in: Query{
-			streamSelector: []labelFilter{stringLabelFilter("app", labelEqual, "some-app")},
+			config:         &cfg,
+			streamSelector: []labelFilter{stringLabelFilter("app", "some-app")},
 			labelJoiner:    joinOr,
 			labelFilters: []labelFilter{
-				stringLabelFilter("foo", labelMatches, "bar"),
+				regexLabelFilter("foo", "bar"),
 				intLabelFilter("port", 1234),
 				ipLabelFilter("SrcAddr", "123.0.0.0/16"),
 			},
@@ -49,9 +56,10 @@ func TestQuery_ToURL_ConvertToAnyMatch(t *testing.T) {
 	}, {
 		title: "streamSelector + line filters + label filters",
 		in: Query{
-			streamSelector: []labelFilter{stringLabelFilter("app", labelEqual, "the-app")},
+			config:         &cfg,
+			streamSelector: []labelFilter{stringLabelFilter("app", "the-app")},
 			labelJoiner:    joinOr,
-			labelFilters:   []labelFilter{stringLabelFilter("foo", labelMatches, "bar")},
+			labelFilters:   []labelFilter{regexLabelFilter("foo", "bar")},
 			lineFilters:    []string{`"DstPod":".*podaco"`},
 		},
 		expect:    "/loki/api/v1/query_range?query={app=\"the-app\"}|~`\"DstPod\":\".*podaco\"`|json|foo=~\"bar\"",
@@ -66,7 +74,7 @@ func TestQuery_ToURL_ConvertToAnyMatch(t *testing.T) {
 			// we need to have at least a stream selector, so we add a label for testing purposes
 			// (in production, we add the app label)
 			anyMatchQuery.streamSelector = append(anyMatchQuery.streamSelector,
-				stringLabelFilter("dont", labelEqual, "fail"))
+				stringLabelFilter("dont", "fail"))
 			anyMatchURL, err := anyMatchQuery.URLQuery()
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectAny, anyMatchURL)
@@ -75,8 +83,12 @@ func TestQuery_ToURL_ConvertToAnyMatch(t *testing.T) {
 }
 
 func TestQuery_AddURLParam(t *testing.T) {
+	lokiURL, err := url.Parse("/")
+	require.NoError(t, err)
+	cfg := NewConfig(lokiURL, time.Second, "", []string{})
 	query := Query{
-		streamSelector: []labelFilter{stringLabelFilter("app", labelEqual, "the-app")},
+		config:         &cfg,
+		streamSelector: []labelFilter{stringLabelFilter("app", "the-app")},
 	}
 	query.addURLParam("foo", "bar")
 	query.addURLParam("flis", "flas")
@@ -86,6 +98,9 @@ func TestQuery_AddURLParam(t *testing.T) {
 }
 
 func TestQuery_BackQuote_Error(t *testing.T) {
-	query := NewQuery("/", []string{"lab1", "lab2"}, false)
+	lokiURL, err := url.Parse("/")
+	require.NoError(t, err)
+	cfg := NewConfig(lokiURL, time.Second, "", []string{"lab1", "lab2"})
+	query := NewQuery(&cfg, false)
 	assert.Error(t, query.AddParam("key", "backquoted`val"))
 }

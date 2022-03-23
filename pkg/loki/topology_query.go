@@ -26,9 +26,9 @@ type TopologyQueryBuilder struct {
 	topology *Topology
 }
 
-func NewTopologyQuery(baseURL string, labels []string) *TopologyQueryBuilder {
+func NewTopologyQuery(cfg *Config) *TopologyQueryBuilder {
 	return &TopologyQueryBuilder{
-		Query:    NewQuery(baseURL, labels, false),
+		Query:    NewQuery(cfg, false),
 		topology: &Topology{},
 	}
 }

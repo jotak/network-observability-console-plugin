@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/netobserv/network-observability-console-plugin/pkg/handler"
+	"github.com/netobserv/network-observability-console-plugin/pkg/loki"
 )
 
 const (
@@ -54,7 +55,7 @@ func TestServerRunning(t *testing.T) {
 
 	go func() {
 		Start(&Config{
-			Loki: handler.LokiConfig{
+			Loki: loki.Config{
 				URL: &url.URL{Scheme: "http", Host: "localhost:3100"},
 			},
 			Port: testPort,
@@ -129,7 +130,7 @@ func TestSecureComm(t *testing.T) {
 		CertFile:       testServerCertFile,
 		PrivateKeyFile: testServerKeyFile,
 		Port:           testPort,
-		Loki: handler.LokiConfig{
+		Loki: loki.Config{
 			URL: &url.URL{Scheme: "http", Host: "localhost:3100"},
 		},
 	}
@@ -200,7 +201,7 @@ func TestLokiConfiguration(t *testing.T) {
 
 	// THAT is accessed behind the NOO console plugin backend
 	backendRoutes := setupRoutes(&Config{
-		Loki: handler.LokiConfig{
+		Loki: loki.Config{
 			URL:     lokiURL,
 			Timeout: time.Second,
 		},
@@ -251,7 +252,7 @@ func TestLokiConfiguration_MultiTenant(t *testing.T) {
 
 	// GIVEN a NOO console plugin backend configured for Multi tenant mode
 	backendRoutes := setupRoutes(&Config{
-		Loki: handler.LokiConfig{
+		Loki: loki.Config{
 			URL:      lokiURL,
 			Timeout:  time.Second,
 			TenantID: "my-organisation",
@@ -438,11 +439,12 @@ func TestLokiFiltering(t *testing.T) {
 
 	// THAT is accessed behind the NOO console plugin backend
 	backendRoutes := setupRoutes(&Config{
-		Loki: handler.LokiConfig{
-			URL:     lokiURL,
-			Timeout: time.Second,
-			Labels:  []string{"SrcK8S_Namespace", "SrcK8S_OwnerName", "DstK8S_Namespace", "DstK8S_OwnerName", "FlowDirection"},
-		},
+		Loki: loki.NewConfig(
+			lokiURL,
+			time.Second,
+			"",
+			[]string{"SrcK8S_Namespace", "SrcK8S_OwnerName", "DstK8S_Namespace", "DstK8S_OwnerName", "FlowDirection"},
+		),
 	})
 	backendSvc := httptest.NewServer(backendRoutes)
 	defer backendSvc.Close()

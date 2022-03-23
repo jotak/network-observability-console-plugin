@@ -16,7 +16,7 @@ import (
 	"github.com/netobserv/network-observability-console-plugin/pkg/utils"
 )
 
-func GetNamespaces(cfg LokiConfig) func(w http.ResponseWriter, r *http.Request) {
+func GetNamespaces(cfg loki.Config) func(w http.ResponseWriter, r *http.Request) {
 	lokiClient := newLokiClient(&cfg)
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Fetch and merge values for SrcK8S_Namespace and DstK8S_Namespace
@@ -37,7 +37,7 @@ func GetNamespaces(cfg LokiConfig) func(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func getLabelValues(cfg *LokiConfig, lokiClient httpclient.HTTPClient, label string) ([]string, int, error) {
+func getLabelValues(cfg *loki.Config, lokiClient httpclient.HTTPClient, label string) ([]string, int, error) {
 	baseURL := strings.TrimRight(cfg.URL.String(), "/")
 	url := fmt.Sprintf("%s/loki/api/v1/label/%s/values", baseURL, label)
 	hlog.Debugf("getLabelValues URL: %s", url)
@@ -59,7 +59,7 @@ func getLabelValues(cfg *LokiConfig, lokiClient httpclient.HTTPClient, label str
 	return lvr.Data, http.StatusOK, nil
 }
 
-func GetNames(cfg LokiConfig) func(w http.ResponseWriter, r *http.Request) {
+func GetNames(cfg loki.Config) func(w http.ResponseWriter, r *http.Request) {
 	lokiClient := newLokiClient(&cfg)
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
@@ -82,7 +82,7 @@ func GetNames(cfg LokiConfig) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getNamesForPrefix(cfg LokiConfig, lokiClient httpclient.HTTPClient, prefix, kind, namespace string) ([]string, int, error) {
+func getNamesForPrefix(cfg loki.Config, lokiClient httpclient.HTTPClient, prefix, kind, namespace string) ([]string, int, error) {
 	lokiParams := map[string][]string{
 		prefix + fields.Namespace: {exact(namespace)},
 	}
@@ -95,7 +95,7 @@ func getNamesForPrefix(cfg LokiConfig, lokiClient httpclient.HTTPClient, prefix,
 		fieldToExtract = prefix + fields.Name
 	}
 
-	queryBuilder := loki.NewQuery(cfg.URL.String(), cfg.Labels, false)
+	queryBuilder := loki.NewQuery(&cfg, false)
 	if err := queryBuilder.AddParams(lokiParams); err != nil {
 		return nil, http.StatusBadRequest, err
 	}

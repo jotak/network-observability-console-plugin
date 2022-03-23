@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -22,14 +20,7 @@ const (
 	lokiOrgIDHeader = "X-Scope-OrgID"
 )
 
-type LokiConfig struct {
-	URL      *url.URL
-	Timeout  time.Duration
-	TenantID string
-	Labels   []string
-}
-
-func newLokiClient(cfg *LokiConfig) httpclient.HTTPClient {
+func newLokiClient(cfg *loki.Config) httpclient.HTTPClient {
 	var headers map[string][]string
 	if cfg.TenantID != "" {
 		headers = map[string][]string{
@@ -40,7 +31,7 @@ func newLokiClient(cfg *LokiConfig) httpclient.HTTPClient {
 	return httpclient.NewHTTPClient(cfg.Timeout, headers)
 }
 
-func GetFlows(cfg LokiConfig, allowExport bool) func(w http.ResponseWriter, r *http.Request) {
+func GetFlows(cfg loki.Config, allowExport bool) func(w http.ResponseWriter, r *http.Request) {
 	lokiClient := newLokiClient(&cfg)
 
 	// TODO: improve search mecanism:
@@ -52,7 +43,7 @@ func GetFlows(cfg LokiConfig, allowExport bool) func(w http.ResponseWriter, r *h
 		hlog.Debugf("GetFlows query params: %s", params)
 
 		//allow export only on specific endpoints
-		queryBuilder := loki.NewQuery(cfg.URL.String(), cfg.Labels, allowExport)
+		queryBuilder := loki.NewQuery(&cfg, allowExport)
 		if err := queryBuilder.AddParams(params); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
