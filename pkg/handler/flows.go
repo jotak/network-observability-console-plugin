@@ -19,16 +19,14 @@ import (
 )
 
 const (
-	startTimeKey     = "startTime"
-	endTimeKey       = "endTime"
-	timeRangeKey     = "timeRange"
-	limitKey         = "limit"
-	matchKey         = "match"
-	reporterKey      = "reporter"
-	filtersKey       = "filters"
-	anyMatchValue    = "any"
-	exportFormatKey  = "format"
-	exportcolumnsKey = "columns"
+	startTimeKey  = "startTime"
+	endTimeKey    = "endTime"
+	timeRangeKey  = "timeRange"
+	limitKey      = "limit"
+	matchKey      = "match"
+	reporterKey   = "reporter"
+	filtersKey    = "filters"
+	anyMatchValue = "any"
 )
 
 type errorWithCode struct {
@@ -192,30 +190,6 @@ func GetFlows2(cfg loki.Config) func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		writeRawJSON(w, http.StatusOK, flows)
-	}
-}
-
-func ExportFlows(cfg loki.Config) func(w http.ResponseWriter, r *http.Request) {
-	lokiClient := newLokiClient(&cfg)
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := r.URL.Query()
-
-		flows, code, err := getFlows(cfg, lokiClient, params)
-		if err != nil {
-			writeError(w, code, err.Error())
-			return
-		}
-
-		exportFormat := params.Get(exportFormatKey)
-		exportColumns := strings.Split(params.Get(exportcolumnsKey), ",")
-
-		switch exportFormat {
-		case exportCSVFormat:
-			writeCSV(w, http.StatusOK, flows, exportColumns)
-		default:
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("export format %q is not valid", exportFormat))
-		}
 	}
 }
 

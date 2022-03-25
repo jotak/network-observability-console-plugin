@@ -325,6 +325,26 @@ func TestLokiFiltering(t *testing.T) {
 			`{SrcK8S_Namespace=~"(?i).*test-namespace.*",app="netobserv-flowcollector"}`,
 		},
 	}, {
+		inputPath: "?SrcK8S_Name=name1,name2&match=all",
+		outputQuery: []string{
+			"{app=\"netobserv-flowcollector\"}|~`SrcK8S_Name\":\"(?i).*name1.*\"|SrcK8S_Name\":\"(?i).*name2.*\"`",
+		},
+	}, {
+		inputPath: "?SrcK8S_Name=name1,name2&match=any",
+		outputQuery: []string{
+			"{app=\"netobserv-flowcollector\"}|~`SrcK8S_Name\":\"(?i).*name1.*\"|SrcK8S_Name\":\"(?i).*name2.*\"`",
+		},
+	}, {
+		inputPath: "?SrcK8S_Namespace=ns1,ns2&match=all",
+		outputQuery: []string{
+			`{SrcK8S_Namespace=~"(?i).*ns1.*|(?i).*ns2.*",app="netobserv-flowcollector"}`,
+		},
+	}, {
+		inputPath: "?SrcK8S_Namespace=ns1,ns2&match=any",
+		outputQuery: []string{
+			`{SrcK8S_Namespace=~"(?i).*ns1.*|(?i).*ns2.*",app="netobserv-flowcollector"}`,
+		},
+	}, {
 		inputPath: "?SrcPort=8080&SrcAddr=10.128.0.1&SrcK8S_Namespace=default",
 		outputQuery: []string{
 			"{SrcK8S_Namespace=~\"(?i).*default.*\",app=\"netobserv-flowcollector\"}|~`SrcPort\":8080`|json|SrcAddr=ip(\"10.128.0.1\")",

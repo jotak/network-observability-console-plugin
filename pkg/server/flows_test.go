@@ -75,6 +75,26 @@ func TestLokiFiltering2(t *testing.T) {
 			`?query={app="netobserv-flowcollector",SrcK8S_Namespace=~"(?i).*test-namespace.*"}`,
 		},
 	}, {
+		inputPath: "?filters=" + url.QueryEscape("SrcK8S_Name=name1,name2") + "&match=all",
+		outputQueries: []string{
+			"?query={app=\"netobserv-flowcollector\"}|~`SrcK8S_Name\":\"(?i).*name1.*\"|SrcK8S_Name\":\"(?i).*name2.*\"`",
+		},
+	}, {
+		inputPath: "?filters=" + url.QueryEscape("SrcK8S_Name=name1,name2") + "&match=any",
+		outputQueries: []string{
+			"?query={app=\"netobserv-flowcollector\"}|~`SrcK8S_Name\":\"(?i).*name1.*\"|SrcK8S_Name\":\"(?i).*name2.*\"`",
+		},
+	}, {
+		inputPath: "?filters=" + url.QueryEscape("SrcK8S_Namespace=ns1,ns2") + "&match=all",
+		outputQueries: []string{
+			`?query={app="netobserv-flowcollector",SrcK8S_Namespace=~"(?i).*ns1.*|(?i).*ns2.*"}`,
+		},
+	}, {
+		inputPath: "?filters=" + url.QueryEscape("SrcK8S_Namespace=ns1,ns2") + "&match=any",
+		outputQueries: []string{
+			`?query={app="netobserv-flowcollector",SrcK8S_Namespace=~"(?i).*ns1.*|(?i).*ns2.*"}`,
+		},
+	}, {
 		inputPath: "?filters=" + url.QueryEscape("SrcPort=8080;SrcAddr=10.128.0.1;SrcK8S_Namespace=default"),
 		outputQueries: []string{
 			"?query={app=\"netobserv-flowcollector\",SrcK8S_Namespace=~\"(?i).*default.*\"}|~`SrcPort\":8080`|json|SrcAddr=ip(\"10.128.0.1\")",
