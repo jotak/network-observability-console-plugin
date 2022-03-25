@@ -14,19 +14,15 @@ import (
 	"github.com/netobserv/network-observability-console-plugin/pkg/httpclient"
 	"github.com/netobserv/network-observability-console-plugin/pkg/loki"
 	"github.com/netobserv/network-observability-console-plugin/pkg/model"
-	"github.com/netobserv/network-observability-console-plugin/pkg/model/fields"
-	"github.com/netobserv/network-observability-console-plugin/pkg/utils"
 )
 
 const (
-	startTimeKey  = "startTime"
-	endTimeKey    = "endTime"
-	timeRangeKey  = "timeRange"
-	limitKey      = "limit"
-	matchKey      = "match"
-	reporterKey   = "reporter"
-	filtersKey    = "filters"
-	anyMatchValue = "any"
+	startTimeKey = "startTime"
+	endTimeKey   = "endTime"
+	timeRangeKey = "timeRange"
+	limitKey     = "limit"
+	reporterKey  = "reporter"
+	filtersKey   = "filters"
 )
 
 type errorWithCode struct {
@@ -34,132 +30,27 @@ type errorWithCode struct {
 	code int
 }
 
-// Example of raw filters:
-// &filters=foo=a,b;bar=c
-func parseFilters(raw string) map[string]string {
-	parsed := make(map[string]string)
-	list := strings.Split(raw, ";")
-	for _, filter := range list {
-		pair := strings.Split(filter, "=")
-		if len(pair) == 2 {
-			parsed[pair[0]] = pair[1]
-		}
+// Example of raw filters (url-encoded):
+// foo=a,b&bar=c|baz=d
+func parseFilters(raw string) ([]map[string]string, error) {
+	var parsed []map[string]string
+	decoded, err := url.QueryUnescape(raw)
+	if err != nil {
+		return nil, err
 	}
-	return parsed
-}
-
-// groupFilters creates groups of filters for fetching strategy, that depends on the match all/any param
-//	Filters in the same group are fetched in a single query
-//	Each group is fetched via its own query
-func groupFilters(cfg *loki.Config, filters map[string]string, matchAny bool) ([]map[string]string, error) {
-	var groups []map[string]string
-	if matchAny {
-		// Every filter is a group and will be fetched independently
-		for k, v := range filters {
-			// Check for grouped K8S Resource fields (kind.namespace.name)
-			if fields.IsK8SResourcePath(k) {
-				// Although we are in "match any", kind/namespace/name filters have to be in a single group
-				//	or two different groups if there's Src+Dst
-				pathGroup1, pathGroup2, err := expandK8SResourcePath(k, v)
-				if err != nil {
-					return nil, err
-				}
-				groups = append(groups, pathGroup1)
-				if pathGroup2 != nil {
-					groups = append(groups, pathGroup2)
-				}
-				continue
-			}
-
-			// Check if this is a common filter Src+Dst that must be expanded in two filters
-			srcKey, dstKey := fields.ToSrcDst(k)
-			if cfg.IsLabel(srcKey) || cfg.IsLabel(dstKey) {
-				// Add them as separate filters (note: line filters support standing as a single/common filter)
-				groups = append(groups, map[string]string{srcKey: v})
-				groups = append(groups, map[string]string{dstKey: v})
-			} else {
-				groups = append(groups, map[string]string{k: v})
+	groups := strings.Split(decoded, "|")
+	for _, group := range groups {
+		m := make(map[string]string)
+		parsed = append(parsed, m)
+		filters := strings.Split(group, "&")
+		for _, filter := range filters {
+			pair := strings.Split(filter, "=")
+			if len(pair) == 2 {
+				m[pair[0]] = pair[1]
 			}
 		}
-	} else {
-		// Match all => most filters are fetched in a single query, except when there's common Src+Dst filters
-		group1 := make(map[string]string)
-		group2 := make(map[string]string)
-		needSrcDstSplit := false
-		for k, v := range filters {
-			// Check for grouped K8S Resource fields (kind.namespace.name)
-			if fields.IsK8SResourcePath(k) {
-				pathGroup1, pathGroup2, err := expandK8SResourcePath(k, v)
-				if err != nil {
-					return nil, err
-				}
-				if pathGroup2 == nil {
-					// Merge pathGroup1 into both group1 (src) and group2 (dst)
-					utils.MergeMaps(group1, pathGroup1)
-					utils.MergeMaps(group2, pathGroup1)
-				} else {
-					// Merge first into group1 (src), second into group2 (dst)
-					utils.MergeMaps(group1, pathGroup1)
-					utils.MergeMaps(group2, pathGroup2)
-					needSrcDstSplit = true
-				}
-				continue
-			}
-			// Check if this is a common filter Src+Dst that must be expanded in two filters
-			srcKey, dstKey := fields.ToSrcDst(k)
-			if cfg.IsLabel(srcKey) || cfg.IsLabel(dstKey) {
-				// Add them as separate filters (note: line filters support standing as a single/common filter)
-				group1[srcKey] = v
-				group2[dstKey] = v
-				needSrcDstSplit = true
-			} else {
-				group1[k] = v
-				group2[k] = v
-			}
-		}
-		if needSrcDstSplit {
-			groups = []map[string]string{group1, group2}
-		} else {
-			// Simplest case, no split => just return the src filters (it's actually identical to dst filters)
-			groups = []map[string]string{group1}
-		}
 	}
-	return groups, nil
-}
-
-// Expand K8SResourcePath "Kind.Namespace.ObjectName" into three filters,
-// either in a single group or in two groups Src+Dst
-func expandK8SResourcePath(key, value string) (map[string]string, map[string]string, error) {
-	prefix := fields.GetPrefix(key)
-	// Expected value is Kind.Namespace.ObjectName
-	parts := strings.Split(value, ".")
-	if len(parts) != 3 {
-		return nil, nil, fmt.Errorf("invalid resource path: %s=%s", key, value)
-	}
-	kind := parts[0]
-	ns := parts[1]
-	name := parts[2]
-	if prefix == "" {
-		groupSrc := createResourcePathFilter(key, fields.Src, kind, ns, name)
-		groupDst := createResourcePathFilter(key, fields.Dst, kind, ns, name)
-		return groupSrc, groupDst, nil
-	}
-	return createResourcePathFilter(key, prefix, kind, ns, name), nil, nil
-}
-
-func createResourcePathFilter(key, prefix, kind, ns, name string) map[string]string {
-	if strings.Contains(key, "Owner") {
-		return map[string]string{
-			prefix + fields.OwnerType: exact(kind),
-			prefix + fields.Namespace: exact(ns),
-			prefix + fields.OwnerName: exact(name),
-		}
-	}
-	return map[string]string{
-		prefix + fields.Type:      exact(kind),
-		prefix + fields.Namespace: exact(ns),
-		prefix + fields.Name:      exact(name),
-	}
+	return parsed, nil
 }
 
 func getStartTime(params url.Values) (string, error) {
@@ -202,19 +93,17 @@ func getFlows(cfg loki.Config, client httpclient.HTTPClient, params url.Values) 
 	}
 	end := params.Get(endTimeKey)
 	limit := params.Get(limitKey)
-	matchAny := params.Get(matchKey) == anyMatchValue
 	reporter := params.Get(reporterKey)
 	rawFilters := params.Get(filtersKey)
-	filters := parseFilters(rawFilters)
-	grouped, err := groupFilters(&cfg, filters, matchAny)
+	filterGroups, err := parseFilters(rawFilters)
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
 
 	var rawJSON []byte
-	if len(grouped) > 1 {
+	if len(filterGroups) > 1 {
 		// match any, and multiple filters => run in parallel then aggregate
-		res, code, err := fetchParallel(&cfg, client, grouped, start, end, limit, reporter)
+		res, code, err := fetchParallel(&cfg, client, filterGroups, start, end, limit, reporter)
 		if err != nil {
 			return nil, code, errors.New("Error while fetching flows from Loki: " + err.Error())
 		}
@@ -222,8 +111,8 @@ func getFlows(cfg loki.Config, client httpclient.HTTPClient, params url.Values) 
 	} else {
 		// else, run all at once
 		qb := loki.NewFlowQueryBuilder(&cfg, start, end, limit, reporter)
-		if len(grouped) > 0 {
-			err := qb.Filters(grouped[0])
+		if len(filterGroups) > 0 {
+			err := qb.Filters(filterGroups[0])
 			if err != nil {
 				return nil, http.StatusBadRequest, err
 			}
