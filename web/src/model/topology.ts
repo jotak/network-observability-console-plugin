@@ -1,4 +1,4 @@
-import { DEFAULT_TIME_RANGE } from '../utils/router';
+import { defaultTimeRange } from '../utils/router';
 
 export enum LayoutName {
   Cola = 'Cola',
@@ -27,7 +27,7 @@ export interface TopologyOptions {
 }
 
 export const DefaultOptions: TopologyOptions = {
-  rangeInSeconds: DEFAULT_TIME_RANGE,
+  rangeInSeconds: defaultTimeRange,
   nodeBadges: true,
   contextMenus: false,
   edges: true,

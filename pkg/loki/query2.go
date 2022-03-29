@@ -25,8 +25,15 @@ func NewFlowQueryBuilder(cfg *Config, start, end, limit, reporter string) *FlowQ
 	labelFilters := []labelFilter{
 		stringLabelFilter(constants.AppLabel, constants.AppLabelValue),
 	}
-	if len(reporter) > 0 {
-		labelFilters = append(labelFilters, stringLabelFilter(fields.FlowDirection, reporter))
+	switch reporter {
+	case constants.ReporterBoth:
+		// No filter
+		break
+	case constants.ReporterSource:
+		labelFilters = append(labelFilters, stringLabelFilter(fields.FlowDirection, "1"))
+	case constants.ReporterDestination:
+	default:
+		labelFilters = append(labelFilters, stringLabelFilter(fields.FlowDirection, "0"))
 	}
 	return &FlowQueryBuilder{
 		config:       cfg,
