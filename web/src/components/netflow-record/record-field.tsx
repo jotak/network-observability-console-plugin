@@ -2,12 +2,13 @@ import { ResourceLink } from '@openshift-console/dynamic-plugin-sdk';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { FilterIcon, TimesIcon } from '@patternfly/react-icons';
 import * as React from 'react';
+import { style } from 'typestyle';
 import { useTranslation } from 'react-i18next';
 import { FlowDirection, Record } from '../../api/ipfix';
 import { Column, ColumnsId, getFullColumnName } from '../../utils/columns';
 import { formatPort } from '../../utils/port';
 import { formatProtocol } from '../../utils/protocol';
-import { Size, sizeToPxl } from '../netflow-table/netflow-table-helper';
+import { fieldContainerSizeToPxl, Size } from '../netflow-table/netflow-table-helper';
 import './record-field.css';
 
 export type RecordFieldFilter = {
@@ -20,11 +21,13 @@ export const RecordField: React.FC<{
   column: Column;
   size: Size;
   filter?: RecordFieldFilter;
-}> = ({ flow, column, size, filter }) => {
+  className?: string;
+}> = ({ flow, column, size, filter, className }) => {
   const { t } = useTranslation('plugin__network-observability-plugin');
 
   //get row height from display size
-  const height = React.useMemo(() => sizeToPxl(size), [size]);
+  const height = React.useMemo(() => fieldContainerSizeToPxl(size), [size]);
+  const computedHeightClass = style({ height: height });
 
   const onMouseOver = (event: React.MouseEvent<HTMLDivElement, MouseEvent>, className: string) => {
     if (event.currentTarget) {
@@ -109,7 +112,7 @@ export const RecordField: React.FC<{
 
   const doubleContainer = (child1?: JSX.Element, child2?: JSX.Element, asChild = true) => {
     return (
-      <div className={`record-field-flex-container ${asChild ? size : ''}`} style={{ height }}>
+      <div className={`record-field-flex-container ${asChild ? size : ''} ${computedHeightClass}`}>
         <div className="record-field-content-flex" onMouseOver={e => onMouseOver(e, 'record-field-content-flex')}>
           {child1 ? child1 : emptyText()}
         </div>

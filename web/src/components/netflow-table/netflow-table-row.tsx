@@ -14,9 +14,9 @@ const NetflowTableRow: React.FC<{
   size: Size;
   onSelect: (record?: Record) => void;
   highlight: boolean;
-  height?: number;
   tableWidth: number;
-}> = ({ flow, selectedRecord, columns, size, onSelect, highlight, height, tableWidth }) => {
+  computedHeightClass?: string;
+}> = ({ flow, selectedRecord, columns, size, onSelect, highlight, tableWidth, computedHeightClass }) => {
   const onRowClick = () => {
     onSelect(flow);
   };
@@ -33,7 +33,7 @@ const NetflowTableRow: React.FC<{
           timeout={100}
           classNames="newflow"
         >
-          <Td key={c.id} style={{ height, width: `${Math.floor((100 * c.width) / tableWidth)}%` }}>
+          <Td key={c.id} className={computedHeightClass} style={{ width: `${Math.floor((100 * c.width) / tableWidth)}%` }}>
             {<RecordField flow={flow} column={c} size={size}></RecordField>}
           </Td>
         </CSSTransition>
