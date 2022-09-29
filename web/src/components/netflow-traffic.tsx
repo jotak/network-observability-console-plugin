@@ -51,7 +51,7 @@ import { DefaultOptions, TopologyGroupTypes, TopologyOptions } from '../model/to
 import { Column, getDefaultColumns } from '../utils/columns';
 import { loadConfig } from '../utils/config';
 import { ContextSingleton } from '../utils/context';
-import { TimeRange } from '../utils/datetime';
+import { computeStepInterval, TimeRange } from '../utils/datetime';
 import { getHTTPErrorDetails } from '../utils/errors';
 import { Feature, isAllowed } from '../utils/features-gate';
 import { useK8sModelsWithColors } from '../utils/k8s-models-hook';
@@ -272,12 +272,14 @@ export const NetflowTraffic: React.FC<{
       }
     }
     if (selectedViewId !== 'table') {
-      query.function = metricFunction;
       query.type = metricType;
       query.scope = metricScope;
       if (selectedViewId === 'topology') {
         query.groups = topologyOptions.groupTypes !== TopologyGroupTypes.NONE ? topologyOptions.groupTypes : undefined;
       }
+      const info = computeStepInterval(range);
+      query.rateInterval = `${info.rateIntervalSeconds}s`;
+      query.step = `${info.stepSeconds}s`;
     }
     return query;
   }, [
@@ -289,7 +291,6 @@ export const NetflowTraffic: React.FC<{
     layer,
     range,
     selectedViewId,
-    metricFunction,
     metricType,
     metricScope,
     topologyOptions.groupTypes
@@ -395,9 +396,7 @@ export const NetflowTraffic: React.FC<{
   }, [layer]);
   React.useEffect(() => {
     setURLMetricFunction(metricFunction);
-    if (metricFunction === 'rate') {
-      setMetricType(undefined);
-    } else if (!metricType) {
+    if (!metricType) {
       setMetricType(defaultMetricType);
     }
     setURLMetricType(metricType);
@@ -813,7 +812,7 @@ export const NetflowTraffic: React.FC<{
                 setMetricFunction={setMetricFunction}
               />
             )}
-            {selectedViewId !== 'table' && metricFunction !== 'rate' && (
+            {selectedViewId !== 'table' && (
               <MetricTypeDropdown
                 data-test="metricType"
                 id="metricType"

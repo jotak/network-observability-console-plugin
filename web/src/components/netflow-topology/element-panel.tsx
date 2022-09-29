@@ -29,9 +29,7 @@ import { TopologyMetrics } from '../../api/loki';
 import { Filter } from '../../model/filters';
 import { MetricFunction, MetricScope, MetricType } from '../../model/flow-query';
 import { MetricScopeOptions } from '../../model/metrics';
-import { ElementData, isElementFiltered, toggleElementFilter } from '../../model/topology';
-import { humanFileSize } from '../../utils/bytes';
-import { roundTwoDigits } from '../../utils/count';
+import { ElementData, getStat, getValueForDisplay, isElementFiltered, toggleElementFilter } from '../../model/topology';
 import { getDateFromUnixString, twentyFourHourTime } from '../../utils/datetime';
 import { defaultSize, maxSize, minSize } from '../../utils/panel';
 import './element-panel.css';
@@ -117,14 +115,14 @@ export const ElementPanelContent: React.FC<{
   );
 
   const metricTitle = React.useCallback(() => {
-    if (metricFunction === 'rate') {
-      return t('Flows rate');
-    } else if (metricType) {
+    if (metricType) {
       switch (metricFunction) {
+        case 'last':
+          return t('Latest {{type}} rate', { type: metricType });
         case 'avg':
-          return t('Average {{type}} (1m frame)', { type: metricType });
+          return t('Average {{type}} rate', { type: metricType });
         case 'max':
-          return t('Max {{type}} (1m frame)', { type: metricType });
+          return t('Max {{type}} rate', { type: metricType });
         case 'sum':
           return t('Total {{type}}', { type: metricType });
         default:
@@ -138,7 +136,7 @@ export const ElementPanelContent: React.FC<{
 
   const metricValue = React.useCallback(
     (v: number) => {
-      return metricFunction !== 'rate' && metricType === 'bytes' ? humanFileSize(v, true, 0) : roundTwoDigits(v);
+      return metricType ? getValueForDisplay(v, metricType, metricFunction) : '';
     },
     [metricFunction, metricType]
   );
@@ -281,7 +279,12 @@ export const ElementPanelContent: React.FC<{
             }}
           >
             <ChartAxis fixLabelOverlap />
-            <ChartAxis dependentAxis showGrid fixLabelOverlap tickFormat={y => metricValue(y)} />
+            <ChartAxis
+              dependentAxis
+              showGrid
+              fixLabelOverlap
+              tickFormat={y => getValueForDisplay(y, metricType || 'bytes', 'avg')}
+            />
             <ChartGroup>
               {elementMetrics.map(m => (
                 <ChartArea
@@ -362,31 +365,32 @@ export const ElementPanelContent: React.FC<{
         : match(m, data, metricScope)
     );
     nodeMetrics.forEach(m => {
+      const value = getStat(m.stats, metricFunction);
       if (type === 'group') {
         if (data.type === 'Namespace') {
           if (m.metric.SrcK8S_Namespace === data.name) {
-            srcCount += m.total;
+            srcCount += value;
           } else {
-            dstCount += m.total;
+            dstCount += value;
           }
         } else if (data.type === 'Node') {
           if (m.metric.SrcK8S_HostName === data.name) {
-            srcCount += m.total;
+            srcCount += value;
           } else {
-            dstCount += m.total;
+            dstCount += value;
           }
         } else {
           if (m.metric.SrcK8S_OwnerName === data.name) {
-            srcCount += m.total;
+            srcCount += value;
           } else {
-            dstCount += m.total;
+            dstCount += value;
           }
         }
       } else {
         if (m.metric.SrcAddr === data.addr) {
-          srcCount += m.total;
+          srcCount += value;
         } else {
-          dstCount += m.total;
+          dstCount += value;
         }
       }
     });
@@ -436,13 +440,14 @@ export const ElementPanelContent: React.FC<{
       }
     });
     edgeMetrics.forEach(m => {
+      const value = getStat(m.stats, metricFunction);
       if (
         (metricScope === MetricScopeOptions.HOST && m.metric.SrcK8S_HostName === srcData.host) ||
         m.metric.SrcAddr === srcData.addr
       ) {
-        srcCount += m.total;
+        srcCount += value;
       } else {
-        dstCount += m.total;
+        dstCount += value;
       }
     });
     const srcInfos = resourceInfos(srcData);

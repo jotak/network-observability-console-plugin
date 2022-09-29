@@ -265,13 +265,11 @@ export const TopologyContent: React.FC<{
     } else {
       rangeInSeconds = (range.from - range.to) / 1000;
     }
-    const maxEdgeValue = _.isEmpty(metrics)
-      ? 0
-      : metrics.reduce((prev, current) => (prev.total > current.total ? prev : current)).total;
+    const maxEdgeAvg = Math.max(...metrics.map(m => m.stats.avg));
     return {
       ...options,
       rangeInSeconds,
-      maxEdgeValue,
+      maxEdgeAvg,
       metricFunction,
       metricType
     } as TopologyOptions;
