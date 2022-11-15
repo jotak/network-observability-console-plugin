@@ -15,7 +15,6 @@ import { useTranslation } from 'react-i18next';
 import { TopologyMetrics } from '../../api/loki';
 import { MetricType } from '../../model/flow-query';
 import { getStat } from '../../model/topology';
-import { peersEqual } from '../../utils/metrics';
 import { getOverviewPanelTitleAndTooltip, OverviewPanel, OverviewPanelId } from '../../utils/overview-panels';
 import LokiError from '../messages/loki-error';
 import { MetricsContent } from '../metrics/metrics-content';
@@ -100,7 +99,7 @@ export const NetflowOverview: React.FC<NetflowOverviewProps> = ({
     .sort((a, b) => getStat(b.stats, 'sum') - getStat(a.stats, 'sum'))
     .map(m => toNamedMetric(t, m));
   const namedTotalMetric = toNamedMetric(t, totalMetric);
-  const noInternalTopK = topKMetrics.filter(m => !peersEqual(m.source, m.destination));
+  const noInternalTopK = topKMetrics.filter(m => m.source.id !== m.destination.id);
 
   const getPanelContent = (id: OverviewPanelId, title: string): PanelContent => {
     switch (id) {
