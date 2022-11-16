@@ -28,19 +28,9 @@ import { defaultSize, maxSize, minSize } from '../../utils/panel';
 import { MetricFunction, MetricType, NodeType } from '../../model/flow-query';
 import { TopologyMetrics } from '../../api/loki';
 import { Filter } from '../../model/filters';
-import {
-  decorated,
-  ElementData,
-  getStat,
-  GraphElementPeer,
-  isElementFiltered,
-  NodeData,
-  toggleElementFilter
-} from '../../model/topology';
+import { ElementData, GraphElementPeer, isElementFiltered, NodeData, toggleElementFilter } from '../../model/topology';
+import { ElementPanelMetrics } from './element-panel-metrics';
 import './element-panel.css';
-import { MetricsContent } from '../metrics/metrics-content';
-import { getFormattedValue, matchPeer, peersEqual } from '../../utils/metrics';
-import { toNamedMetric } from '../metrics/metrics-helper';
 
 export const ElementPanelDetailsContent: React.FC<{
   element: GraphElementPeer;
@@ -209,109 +199,6 @@ export const ElementPanelDetailsContent: React.FC<{
   return <></>;
 };
 
-export const ElementPanelMetricsContent: React.FC<{
-  element: GraphElementPeer;
-  metrics: TopologyMetrics[];
-  metricFunction: MetricFunction;
-  metricType: MetricType;
-}> = ({ element, metrics, metricFunction, metricType }) => {
-  const { t } = useTranslation('plugin__netobserv-plugin');
-  const data = element.getData();
-
-  const metricCounts = React.useCallback(
-    (inCount: number, outCount: number, forEdge: boolean) => {
-      return (
-        <Flex className="metrics-flex-container">
-          <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsNone' }}>
-            <FlexItem>
-              <FlexItem>
-                <Text className="element-text" component={TextVariants.h4}>
-                  {`${forEdge ? t('Source to destination:') : t('In:')}`}
-                </Text>
-              </FlexItem>
-            </FlexItem>
-            <FlexItem>
-              <FlexItem>
-                <Text className="element-text" component={TextVariants.h4}>
-                  {`${forEdge ? t('Destination to source:') : t('Out:')}`}
-                </Text>
-              </FlexItem>
-            </FlexItem>
-            <FlexItem>
-              <FlexItem>
-                <Text className="element-text" component={TextVariants.h4}>{`${t('Both:')}`}</Text>
-              </FlexItem>
-            </FlexItem>
-          </Flex>
-          <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsNone' }}>
-            <FlexItem>
-              <Text id="inCount">{getFormattedValue(inCount, metricType, metricFunction)}</Text>
-            </FlexItem>
-            <FlexItem>
-              <Text id="outCount">{getFormattedValue(outCount, metricType, metricFunction)}</Text>
-            </FlexItem>
-            <FlexItem>
-              <Text id="total">{getFormattedValue(inCount + outCount, metricType, metricFunction)}</Text>
-            </FlexItem>
-          </Flex>
-        </Flex>
-      );
-    },
-    [metricFunction, metricType, t]
-  );
-
-  if (element instanceof BaseNode && data) {
-    const filteredMetrics = metrics.filter(m => !peersEqual(m.source, m.destination));
-    const outMetrics = filteredMetrics.filter(m => matchPeer(data, m.source)).map(m => toNamedMetric(t, m, data));
-    const inMetrics = filteredMetrics.filter(m => matchPeer(data, m.destination)).map(m => toNamedMetric(t, m, data));
-    const outCount = outMetrics.reduce((prev, cur) => prev + getStat(cur.stats, metricFunction), 0);
-    const inCount = inMetrics.reduce((prev, cur) => prev + getStat(cur.stats, metricFunction), 0);
-    return (
-      <div className="element-metrics-container">
-        <MetricsContent
-          id={`node-${decorated(data).id}`}
-          title={t('{{type}} rate', { type: metricType.charAt(0).toUpperCase() + metricType.slice(1) })}
-          metricType={metricType}
-          metrics={[...inMetrics, ...outMetrics].sort((a, b) => getStat(b.stats, 'sum') - getStat(a.stats, 'sum'))}
-          counters={metricCounts(inCount, outCount, false)}
-          limit={10}
-          showTitle
-          showArea
-          showScatter
-        />
-      </div>
-    );
-  } else if (element instanceof BaseEdge) {
-    // Edge A to B (prefering neutral naming here as there is no assumption about what is source, what is destination
-    const aData = element.getSource().getData();
-    const bData = element.getTarget().getData();
-    const aToBMetrics = metrics
-      .filter(m => matchPeer(aData, m.source) && matchPeer(bData, m.destination))
-      .map(m => toNamedMetric(t, m, data));
-    const bToAMetrics = metrics
-      .filter(m => matchPeer(bData, m.source) && matchPeer(aData, m.destination))
-      .map(m => toNamedMetric(t, m, data));
-    const aToBCount = aToBMetrics.reduce((prev, cur) => prev + getStat(cur.stats, metricFunction), 0);
-    const bToACount = bToAMetrics.reduce((prev, cur) => prev + getStat(cur.stats, metricFunction), 0);
-    return (
-      <div className="element-metrics-container">
-        <MetricsContent
-          id={`edge-${aData.id}-${bData.id}`}
-          title={t('{{type}} rate', { type: metricType.charAt(0).toUpperCase() + metricType.slice(1) })}
-          metricType={metricType}
-          metrics={[...aToBMetrics, ...bToAMetrics].sort((a, b) => getStat(b.stats, 'sum') - getStat(a.stats, 'sum'))}
-          counters={metricCounts(aToBCount, bToACount, true)}
-          limit={10}
-          showTitle
-          showArea
-          showScatter
-        />
-      </div>
-    );
-  }
-  return <></>;
-};
-
 export const ElementPanel: React.FC<{
   onClose: () => void;
   element: GraphElementPeer;
@@ -326,6 +213,16 @@ export const ElementPanel: React.FC<{
   const [activeTab, setActiveTab] = React.useState<string>('details');
 
   const data = element.getData();
+
+  let aData: NodeData | undefined;
+  let bData: NodeData | undefined;
+  if (element instanceof BaseEdge) {
+    aData = element.getSource().getData();
+    bData = element.getTarget().getData();
+  } else {
+    // Keep aData undefined so that "from" is undefined for Metrics In
+    bData = data;
+  }
 
   const titleContent = React.useCallback(() => {
     if (element instanceof BaseNode && data?.resourceKind && data?.name) {
@@ -367,9 +264,20 @@ export const ElementPanel: React.FC<{
           <Tab className="drawer-tab" eventKey={'details'} title={<TabTitleText>{t('Details')}</TabTitleText>}>
             <ElementPanelDetailsContent element={element} filters={filters} setFilters={setFilters} />
           </Tab>
-          <Tab className="drawer-tab" eventKey={'metrics'} title={<TabTitleText>{t('Metrics')}</TabTitleText>}>
-            <ElementPanelMetricsContent
-              element={element}
+          <Tab className="drawer-tab" eventKey={'metrics-in'} title={<TabTitleText>{t('Metrics In')}</TabTitleText>}>
+            <ElementPanelMetrics
+              from={aData}
+              to={bData}
+              metrics={metrics}
+              metricFunction={metricFunction}
+              metricType={metricType}
+            />
+          </Tab>
+          <Tab className="drawer-tab" eventKey={'metrics-out'} title={<TabTitleText>{t('Metrics Out')}</TabTitleText>}>
+            <ElementPanelMetrics
+              from={bData}
+              to={aData}
+              isReversed={true}
               metrics={metrics}
               metricFunction={metricFunction}
               metricType={metricType}

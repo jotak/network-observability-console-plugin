@@ -5,9 +5,10 @@ import * as React from 'react';
 import { Filter } from '../../../model/filters';
 import { TopologyMetrics } from '../../../api/loki';
 import { MetricFunction, MetricScope, MetricType } from '../../../model/flow-query';
-import { ElementPanel, ElementPanelDetailsContent, ElementPanelMetricsContent } from '../element-panel';
+import { ElementPanel, ElementPanelDetailsContent } from '../element-panel';
 import { dataSample } from '../__tests-data__/metrics';
 import { NodeData } from '../../../model/topology';
+import { ElementPanelMetrics } from '../element-panel-metrics';
 
 describe('<ElementPanel />', () => {
   const getNode = (kind: string, name: string, addr: string) => {
@@ -68,8 +69,8 @@ describe('<ElementPanel />', () => {
   });
 
   it('should render <ElementPanelMetricsContent />', async () => {
-    const wrapper = mount(<ElementPanelMetricsContent {...mocks} />);
-    expect(wrapper.find(ElementPanelMetricsContent)).toBeTruthy();
+    const wrapper = mount(<ElementPanelMetrics {...mocks} />);
+    expect(wrapper.find(ElementPanelMetrics)).toBeTruthy();
 
     //check node metrics
     expect(wrapper.find('#inCount').last().text()).toBe('94.7 MB');
