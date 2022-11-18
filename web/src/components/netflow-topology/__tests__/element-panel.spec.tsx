@@ -1,4 +1,4 @@
-import { Button, DrawerCloseButton } from '@patternfly/react-core';
+import { DrawerCloseButton, OptionsMenuToggle } from '@patternfly/react-core';
 import { BaseEdge, BaseNode, NodeModel } from '@patternfly/react-topology';
 import { mount, shallow } from 'enzyme';
 import * as React from 'react';
@@ -9,15 +9,17 @@ import { ElementPanel, ElementPanelDetailsContent } from '../element-panel';
 import { dataSample } from '../__tests-data__/metrics';
 import { NodeData } from '../../../model/topology';
 import { ElementPanelMetrics } from '../element-panel-metrics';
+import { createPeer } from '../../../utils/metrics';
 
 describe('<ElementPanel />', () => {
   const getNode = (kind: string, name: string, addr: string) => {
     const bn = new BaseNode<NodeModel, NodeData>();
     bn.setData({
       nodeType: 'resource',
-      resourceKind: kind,
-      name,
-      addr
+      peer: createPeer({
+        addr: addr,
+        resource: { name, type: kind }
+      })
     });
     return bn;
   };
@@ -59,7 +61,7 @@ describe('<ElementPanel />', () => {
     expect(wrapper.find(ElementPanelDetailsContent)).toBeTruthy();
 
     //check node infos
-    expect(wrapper.find('#addressValue').last().text()).toBe('10.129.0.15');
+    expect(wrapper.find('#node-info-address').last().text()).toBe('IP10.129.0.15');
 
     //update to edge
     wrapper.setProps({ ...mocks, element: getEdge() });
@@ -127,9 +129,11 @@ describe('<ElementPanel />', () => {
 
   it('should filter <ElementPanelDetailsContent />', async () => {
     const wrapper = mount(<ElementPanelDetailsContent {...mocks} />);
-    const filterButtons = wrapper.find(Button);
+    const ipFilters = wrapper.find(OptionsMenuToggle).last();
     // Two buttons: first for pod filter, second for IP filter
-    filterButtons.last().simulate('click');
+    ipFilters.last().simulate('click');
+    expect(wrapper.find('li').length).toBe(3);
+    wrapper.find('[id="any"]').at(0).simulate('click');
     expect(mocks.setFilters).toHaveBeenCalledWith([
       {
         def: expect.any(Object),
