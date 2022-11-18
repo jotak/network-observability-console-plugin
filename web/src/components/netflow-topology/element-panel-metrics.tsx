@@ -4,7 +4,7 @@ import { MetricType } from '../../model/flow-query';
 import { TopologyMetrics } from '../../api/loki';
 import { decorated, getStat, NodeData } from '../../model/topology';
 import { MetricsContent } from '../metrics/metrics-content';
-import { matchPeer, peersEqual } from '../../utils/metrics';
+import { matchPeer } from '../../utils/metrics';
 import { toNamedMetric } from '../metrics/metrics-helper';
 import { ElementPanelStats } from './element-panel-stats';
 
@@ -24,7 +24,7 @@ export const ElementPanelMetrics: React.FC<{
     return (
       <div className="element-metrics-container">
         <MetricsContent
-          id={`edge-${from.name}-${to.name}`}
+          id={`edge-${from.peer.id}-${to.peer.id}`}
           title={t('{{type}} rate', { type: metricType.charAt(0).toUpperCase() + metricType.slice(1) })}
           metricType={metricType}
           metrics={filtered.slice(0, 5)}
@@ -46,7 +46,7 @@ export const ElementPanelMetrics: React.FC<{
       ? (m: TopologyMetrics) => matchPeer(data, m.source)
       : (m: TopologyMetrics) => matchPeer(data, m.destination);
     const filtered = metrics
-      .filter(m => !peersEqual(m.source, m.destination) && matchSourceOrDest(m))
+      .filter(m => m.source.id !== m.destination.id && matchSourceOrDest(m))
       .map(m => toNamedMetric(t, m))
       .sort((a, b) => getStat(b.stats, 'sum') - getStat(a.stats, 'sum'));
     return (

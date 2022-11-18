@@ -9,8 +9,6 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  Flex,
-  FlexItem,
   Tab,
   Tabs,
   TabTitleText,
@@ -24,13 +22,11 @@ import { defaultSize, maxSize, minSize } from '../../utils/panel';
 import { MetricType } from '../../model/flow-query';
 import { TopologyMetrics } from '../../api/loki';
 import { Filter } from '../../model/filters';
-import { decorated, getStat, GraphElementPeer, NodeData } from '../../model/topology';
+import { GraphElementPeer, NodeData } from '../../model/topology';
 import './element-panel.css';
-import { MetricsContent } from '../metrics/metrics-content';
-import { getFormattedValue, matchPeer } from '../../utils/metrics';
-import { toNamedMetric } from '../metrics/metrics-helper';
 import { ElementFields } from './element-fields';
 import { PeerResourceLink } from './peer-resource-link';
+import { ElementPanelMetrics } from './element-panel-metrics';
 
 export const ElementPanelDetailsContent: React.FC<{
   element: GraphElementPeer;
