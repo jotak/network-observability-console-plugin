@@ -25,7 +25,7 @@ import { BaseEdge, BaseNode } from '@patternfly/react-topology';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { defaultSize, maxSize, minSize } from '../../utils/panel';
-import { MetricFunction, MetricType, NodeType } from '../../model/flow-query';
+import { MetricType, NodeType } from '../../model/flow-query';
 import { TopologyMetrics } from '../../api/loki';
 import { Filter } from '../../model/filters';
 import { ElementData, GraphElementPeer, isElementFiltered, NodeData, toggleElementFilter } from '../../model/topology';
@@ -203,12 +203,11 @@ export const ElementPanel: React.FC<{
   onClose: () => void;
   element: GraphElementPeer;
   metrics: TopologyMetrics[];
-  metricFunction: MetricFunction;
   metricType: MetricType;
   filters: Filter[];
   setFilters: (filters: Filter[]) => void;
   id?: string;
-}> = ({ id, element, metrics, metricFunction, metricType, filters, setFilters, onClose }) => {
+}> = ({ id, element, metrics, metricType, filters, setFilters, onClose }) => {
   const { t } = useTranslation('plugin__netobserv-plugin');
   const [activeTab, setActiveTab] = React.useState<string>('details');
 
@@ -265,23 +264,10 @@ export const ElementPanel: React.FC<{
             <ElementPanelDetailsContent element={element} filters={filters} setFilters={setFilters} />
           </Tab>
           <Tab className="drawer-tab" eventKey={'metrics-in'} title={<TabTitleText>{t('Metrics In')}</TabTitleText>}>
-            <ElementPanelMetrics
-              from={aData}
-              to={bData}
-              metrics={metrics}
-              metricFunction={metricFunction}
-              metricType={metricType}
-            />
+            <ElementPanelMetrics from={aData} to={bData} metrics={metrics} metricType={metricType} />
           </Tab>
           <Tab className="drawer-tab" eventKey={'metrics-out'} title={<TabTitleText>{t('Metrics Out')}</TabTitleText>}>
-            <ElementPanelMetrics
-              from={bData}
-              to={aData}
-              isReversed={true}
-              metrics={metrics}
-              metricFunction={metricFunction}
-              metricType={metricType}
-            />
+            <ElementPanelMetrics from={bData} to={aData} metrics={metrics} metricType={metricType} />
           </Tab>
         </Tabs>
       </DrawerPanelBody>
