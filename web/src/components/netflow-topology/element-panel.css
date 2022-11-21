@@ -9,8 +9,14 @@
   margin-bottom: 15px;
 }
 
-.element-text {
+#metrics-stats-title {
+  margin-bottom: 15px;
+}
+
+.element-stats-title {
+  /* Fix stats titles misaligned */
   margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .element-metrics-container {

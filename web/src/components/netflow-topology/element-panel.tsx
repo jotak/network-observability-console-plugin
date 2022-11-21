@@ -27,6 +27,8 @@ import './element-panel.css';
 import { ElementFields } from './element-fields';
 import { PeerResourceLink } from './peer-resource-link';
 import { ElementPanelMetrics } from './element-panel-metrics';
+import { PanelMetricsContext } from './element-panel-stats';
+import './element-panel.css';
 
 export const ElementPanelDetailsContent: React.FC<{
   element: GraphElementPeer;
@@ -122,14 +124,16 @@ export const ElementPanel: React.FC<{
 
   const data = element.getData();
 
-  let aData: NodeData | undefined;
+  let aData: NodeData;
   let bData: NodeData | undefined;
+  let contexts: [PanelMetricsContext, PanelMetricsContext];
   if (element instanceof BaseEdge) {
     aData = element.getSource().getData();
     bData = element.getTarget().getData();
+    contexts = ['a-to-b', 'b-to-a'];
   } else {
-    // Keep aData undefined so that "from" is undefined for Metrics In
-    bData = data;
+    aData = data!;
+    contexts = ['to-node', 'from-node'];
   }
 
   const titleContent = React.useCallback(() => {
@@ -170,10 +174,22 @@ export const ElementPanel: React.FC<{
             <ElementPanelDetailsContent element={element} filters={filters} setFilters={setFilters} />
           </Tab>
           <Tab className="drawer-tab" eventKey={'metrics-in'} title={<TabTitleText>{t('Metrics In')}</TabTitleText>}>
-            <ElementPanelMetrics from={aData} to={bData} metrics={metrics} metricType={metricType} />
+            <ElementPanelMetrics
+              aData={aData}
+              bData={bData}
+              context={contexts[0]}
+              metrics={metrics}
+              metricType={metricType}
+            />
           </Tab>
           <Tab className="drawer-tab" eventKey={'metrics-out'} title={<TabTitleText>{t('Metrics Out')}</TabTitleText>}>
-            <ElementPanelMetrics from={bData} to={aData} metrics={metrics} metricType={metricType} />
+            <ElementPanelMetrics
+              aData={aData}
+              bData={bData}
+              context={contexts[1]}
+              metrics={metrics}
+              metricType={metricType}
+            />
           </Tab>
         </Tabs>
       </DrawerPanelBody>
