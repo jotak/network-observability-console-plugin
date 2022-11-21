@@ -69,7 +69,12 @@ describe('<ElementPanel />', () => {
 
   it('should render <ElementPanelMetricsContent /> node inbound', async () => {
     const wrapper = mount(
-      <ElementPanelMetrics metricType={mocks.metricType} metrics={mocks.metrics} to={mocks.element.getData()} />
+      <ElementPanelMetrics
+        metricType={mocks.metricType}
+        metrics={mocks.metrics}
+        aData={mocks.element.getData()!}
+        context={'to-node'}
+      />
     );
     expect(wrapper.find(ElementPanelMetrics)).toBeTruthy();
 
@@ -81,7 +86,12 @@ describe('<ElementPanel />', () => {
 
   it('should render <ElementPanelMetricsContent /> node outbound', async () => {
     const wrapper = mount(
-      <ElementPanelMetrics metricType={mocks.metricType} metrics={mocks.metrics} from={mocks.element.getData()} />
+      <ElementPanelMetrics
+        metricType={mocks.metricType}
+        metrics={mocks.metrics}
+        aData={mocks.element.getData()!}
+        context={'from-node'}
+      />
     );
     expect(wrapper.find(ElementPanelMetrics)).toBeTruthy();
 
@@ -97,8 +107,9 @@ describe('<ElementPanel />', () => {
       <ElementPanelMetrics
         metricType={mocks.metricType}
         metrics={mocks.metrics}
-        from={edge.getSource().getData()}
-        to={edge.getTarget().getData()}
+        aData={edge.getSource().getData()}
+        bData={edge.getTarget().getData()}
+        context={'a-to-b'}
       />
     );
     expect(wrapper.find(ElementPanelMetrics)).toBeTruthy();
@@ -114,8 +125,9 @@ describe('<ElementPanel />', () => {
       <ElementPanelMetrics
         metricType={mocks.metricType}
         metrics={mocks.metrics}
-        to={edge.getSource().getData()}
-        from={edge.getTarget().getData()}
+        aData={edge.getSource().getData()}
+        bData={edge.getTarget().getData()}
+        context={'b-to-a'}
       />
     );
     expect(wrapper.find(ElementPanelMetrics)).toBeTruthy();
