@@ -11,24 +11,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: QE approval
-        id: check-qe-label
-        uses: mheap/github-action-required-labels@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          mode: minimum
-          count: 1
-          labels: "qe-approved, no-qe"
-          add_comment: true
-          exit_type: success
+        if: "!contains( github.event.pull_request.labels.*.name, 'qe-approved') && !contains( github.event.pull_request.labels.*.name, 'no-qe')"
+        run: |
+          echo 'qemissing="Missing either qe-approve or no-qe label.\n"' >> $GITHUB_ENV
+          echo 'failure=1' >> $GITHUB_ENV
       - name: Doc approval
-        id: check-doc-label
-        uses: mheap/github-action-required-labels@v3
+        if: "!contains( github.event.pull_request.labels.*.name, 'doc-approved') && !contains( github.event.pull_request.labels.*.name, 'no-doc')"
+        run: |
+          echo 'docmissing="Missing either doc-approve or no-doc label.\n"' >> $GITHUB_ENV
+          echo 'failure=1' >> $GITHUB_ENV
+      - uses: actions/github-script@v6
+        if: "env.failure == 1"
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          mode: minimum
-          count: 1
-          labels: "doc-approved, no-doc"
-          add_comment: true
-          exit_type: success
-      - run: echo FAILURE && exit 1
-        if: steps.check-qe-label.outputs.status != 'success' || steps.check-doc-label.outputs.status != 'success'
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Pre-merge labels checks:\n${{ env.qemissing }}${{ env.docmissing }}'
+            })
+            core.setFailed({{ env.qemissing }}${{ env.docmissing }});
