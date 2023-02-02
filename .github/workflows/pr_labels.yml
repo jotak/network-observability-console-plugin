@@ -6,29 +6,17 @@ on:
     branches: ['*']
 
 jobs:
-  premerge-labels:
-    name: Pre-merge labels
+  qe-labels:
+    name: Required QE labels (qe-approve or no-qe) 
     runs-on: ubuntu-latest
     steps:
       - name: QE approval
         if: "!contains( github.event.pull_request.labels.*.name, 'qe-approved') && !contains( github.event.pull_request.labels.*.name, 'no-qe')"
-        run: |
-          echo 'qemissing=Missing either qe-approve or no-qe label.\n' >> $GITHUB_ENV
-          echo 'failure=1' >> $GITHUB_ENV
+        run: exit 1
+  doc-labels:
+    name: Required Doc labels (doc-approve or no-doc) 
+    runs-on: ubuntu-latest
+    steps:
       - name: Doc approval
         if: "!contains( github.event.pull_request.labels.*.name, 'doc-approved') && !contains( github.event.pull_request.labels.*.name, 'no-doc')"
-        run: |
-          echo 'docmissing=Missing either doc-approve or no-doc label.\n' >> $GITHUB_ENV
-          echo 'failure=1' >> $GITHUB_ENV
-      - uses: actions/github-script@v6
-        if: "env.failure == 1"
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: 'Pre-merge labels checks:\n${{ env.qemissing }}${{ env.docmissing }}'
-            })
-            core.setFailed("${{ env.qemissing }}${{ env.docmissing }}");
+        run: exit 1
