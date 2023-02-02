@@ -13,12 +13,12 @@ jobs:
       - name: QE approval
         if: "!contains( github.event.pull_request.labels.*.name, 'qe-approved') && !contains( github.event.pull_request.labels.*.name, 'no-qe')"
         run: |
-          echo 'qemissing="Missing either qe-approve or no-qe label.\n"' >> $GITHUB_ENV
+          echo 'qemissing=Missing either qe-approve or no-qe label.\n' >> $GITHUB_ENV
           echo 'failure=1' >> $GITHUB_ENV
       - name: Doc approval
         if: "!contains( github.event.pull_request.labels.*.name, 'doc-approved') && !contains( github.event.pull_request.labels.*.name, 'no-doc')"
         run: |
-          echo 'docmissing="Missing either doc-approve or no-doc label.\n"' >> $GITHUB_ENV
+          echo 'docmissing=Missing either doc-approve or no-doc label.\n' >> $GITHUB_ENV
           echo 'failure=1' >> $GITHUB_ENV
       - uses: actions/github-script@v6
         if: "env.failure == 1"
