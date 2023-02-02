@@ -31,4 +31,4 @@ jobs:
               repo: context.repo.repo,
               body: 'Pre-merge labels checks:\n${{ env.qemissing }}${{ env.docmissing }}'
             })
-            core.setFailed(${{ env.qemissing }}${{ env.docmissing }});
+            core.setFailed("${{ env.qemissing }}${{ env.docmissing }}");
