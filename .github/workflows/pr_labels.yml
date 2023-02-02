@@ -7,7 +7,7 @@ on:
 
 jobs:
   check-labels:
-    name: qe-approve/no-qe, doc-approve/no-doc
+    name: qe-approve|no-qe, doc-approve|no-doc
     runs-on: ubuntu-latest
     steps:
       - name: QE approval
