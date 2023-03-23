@@ -1,15 +1,11 @@
 package constants
 
-type Reporter string
 type RecordType string
 type PacketLoss string
 
 const (
 	AppLabel                            = "app"
 	AppLabelValue                       = "netobserv-flowcollector"
-	ReporterSource           Reporter   = "source"
-	ReporterDestination      Reporter   = "destination"
-	ReporterBoth             Reporter   = "both"
 	RecordTypeLabel                     = "_RecordType"
 	RecordTypeAllConnections RecordType = "allConnections"
 	RecordTypeNewConnection  RecordType = "newConnection"
@@ -20,6 +16,8 @@ const (
 	PacketLossHasDrop        PacketLoss = "hasDrops"
 	PacketLossSent           PacketLoss = "sent"
 	PacketLossAll            PacketLoss = "all"
+	Ingress                             = "0"
+	Egress                              = "1"
 )
 
 var AnyConnectionType = []string{

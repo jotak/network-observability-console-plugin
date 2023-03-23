@@ -20,7 +20,7 @@ const (
 	endTimeKey    = "endTime"
 	timeRangeKey  = "timeRange"
 	limitKey      = "limit"
-	reporterKey   = "reporter"
+	dedupKey      = "dedup"
 	recordTypeKey = "recordType"
 	filtersKey    = "filters"
 	packetLossKey = "packetLoss"
@@ -115,7 +115,7 @@ func getFlows(cfg *loki.Config, client httpclient.Caller, params url.Values) (*m
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
-	reporter := constants.Reporter(params.Get(reporterKey))
+	dedup := params.Get(dedupKey) == "true"
 	recordType := constants.RecordType(params.Get(recordTypeKey))
 	packetLoss := constants.PacketLoss(params.Get(packetLossKey))
 	rawFilters := params.Get(filtersKey)
@@ -129,7 +129,7 @@ func getFlows(cfg *loki.Config, client httpclient.Caller, params url.Values) (*m
 		// match any, and multiple filters => run in parallel then aggregate
 		var queries []string
 		for _, group := range filterGroups {
-			qb := loki.NewFlowQueryBuilder(cfg, start, end, limit, reporter, recordType, packetLoss)
+			qb := loki.NewFlowQueryBuilder(cfg, start, end, limit, dedup, recordType, packetLoss)
 			err := qb.Filters(group)
 			if err != nil {
 				return nil, http.StatusBadRequest, errors.New("Can't build query: " + err.Error())
@@ -142,7 +142,7 @@ func getFlows(cfg *loki.Config, client httpclient.Caller, params url.Values) (*m
 		}
 	} else {
 		// else, run all at once
-		qb := loki.NewFlowQueryBuilder(cfg, start, end, limit, reporter, recordType, packetLoss)
+		qb := loki.NewFlowQueryBuilder(cfg, start, end, limit, dedup, recordType, packetLoss)
 		if len(filterGroups) > 0 {
 			err := qb.Filters(filterGroups[0])
 			if err != nil {

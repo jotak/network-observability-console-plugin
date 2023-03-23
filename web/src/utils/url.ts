@@ -14,7 +14,7 @@ export enum URLParam {
   Match = 'match',
   PacketLoss = 'packetLoss',
   RecordType = 'recordType',
-  Reporter = 'reporter',
+  ShowDuplicates = 'showDup',
   MetricFunction = 'function',
   MetricType = 'type'
 }
@@ -36,6 +36,14 @@ export const getURLParamAsNumber = (arg: URLParam) => {
   const q = getURLParam(arg);
   if (q && !isNaN(Number(q))) {
     return Number(q);
+  }
+  return null;
+};
+
+export const getURLParamAsBool = (arg: URLParam) => {
+  const q = getURLParam(arg);
+  if (q) {
+    return q === 'true';
   }
   return null;
 };

@@ -18,7 +18,6 @@ type Topology struct {
 	function           string
 	dataField          string
 	fields             string
-	dedup              bool
 	skipEmptyDropState bool
 	skipEmptyDropCause bool
 }
@@ -29,7 +28,7 @@ type TopologyQueryBuilder struct {
 }
 
 func NewTopologyQuery(cfg *Config, start, end, limit, rateInterval, step, metricType string,
-	recordType constants.RecordType, reporter constants.Reporter, packetLoss constants.PacketLoss,
+	recordType constants.RecordType, packetLoss constants.PacketLoss,
 	aggregate, groups string) (*TopologyQueryBuilder, error) {
 	l := limit
 	if len(l) == 0 {
@@ -66,7 +65,7 @@ func NewTopologyQuery(cfg *Config, start, end, limit, rateInterval, step, metric
 	}
 
 	return &TopologyQueryBuilder{
-		FlowQueryBuilder: NewFlowQueryBuilder(cfg, start, end, limit, reporter, rt, packetLoss),
+		FlowQueryBuilder: NewFlowQueryBuilder(cfg, start, end, limit, d, rt, packetLoss),
 		topology: &Topology{
 			rateInterval:       rateInterval,
 			step:               step,
@@ -74,7 +73,6 @@ func NewTopologyQuery(cfg *Config, start, end, limit, rateInterval, step, metric
 			function:           f,
 			dataField:          t,
 			fields:             fields,
-			dedup:              d,
 			skipEmptyDropState: aggregate == "droppedState",
 			skipEmptyDropCause: aggregate == "droppedCause",
 		},
@@ -146,9 +144,6 @@ func (q *TopologyQueryBuilder) Build() string {
 	sb.WriteString("(")
 	q.appendLabels(sb)
 	q.appendLineFilters(sb)
-	if q.topology.dedup {
-		q.appendDeduplicateFilter(sb)
-	}
 	if q.topology.skipEmptyDropState {
 		q.appendTCPDropStateFilter(sb)
 	} else if q.topology.skipEmptyDropCause {

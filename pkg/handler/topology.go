@@ -69,7 +69,6 @@ func getTopologyFlows(cfg *loki.Config, client httpclient.Caller, params url.Val
 		step = defaultStep
 	}
 	metricType := params.Get(metricTypeKey)
-	reporter := constants.Reporter(params.Get(reporterKey))
 	recordType := constants.RecordType(params.Get(recordTypeKey))
 	packetLoss := constants.PacketLoss(params.Get(packetLossKey))
 	aggregate := params.Get(aggregateByKey)
@@ -79,13 +78,14 @@ func getTopologyFlows(cfg *loki.Config, client httpclient.Caller, params url.Val
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
+	filterGroups = expandReportersMergeQueries(filterGroups)
 
 	merger := loki.NewMatrixMerger(reqLimit)
 	if len(filterGroups) > 1 {
 		// match any, and multiple filters => run in parallel then aggregate
 		var queries []string
 		for _, group := range filterGroups {
-			query, code, err := buildTopologyQuery(cfg, group, start, end, limit, rateInterval, step, metricType, recordType, reporter, packetLoss, aggregate, groups)
+			query, code, err := buildTopologyQuery(cfg, group, start, end, limit, rateInterval, step, metricType, recordType, packetLoss, aggregate, groups)
 			if err != nil {
 				return nil, code, errors.New("Can't build query: " + err.Error())
 			}
@@ -101,7 +101,7 @@ func getTopologyFlows(cfg *loki.Config, client httpclient.Caller, params url.Val
 		if len(filterGroups) > 0 {
 			filters = filterGroups[0]
 		}
-		query, code, err := buildTopologyQuery(cfg, filters, start, end, limit, rateInterval, step, metricType, recordType, reporter, packetLoss, aggregate, groups)
+		query, code, err := buildTopologyQuery(cfg, filters, start, end, limit, rateInterval, step, metricType, recordType, packetLoss, aggregate, groups)
 		if err != nil {
 			return nil, code, err
 		}
@@ -118,8 +118,22 @@ func getTopologyFlows(cfg *loki.Config, client httpclient.Caller, params url.Val
 	return qr, http.StatusOK, nil
 }
 
-func buildTopologyQuery(cfg *loki.Config, queryFilters filters.SingleQuery, start, end, limit, rateInterval, step, metricType string, recordType constants.RecordType, reporter constants.Reporter, packetLoss constants.PacketLoss, aggregate, groups string) (string, int, error) {
-	qb, err := loki.NewTopologyQuery(cfg, start, end, limit, rateInterval, step, metricType, recordType, reporter, packetLoss, aggregate, groups)
+func expandReportersMergeQueries(queries filters.MultiQueries) filters.MultiQueries {
+	var out filters.MultiQueries
+	for _, q := range queries {
+		q1, q2 := filters.SplitForReportersMerge(q)
+		if q1 != nil {
+			out = append(out, q1)
+		}
+		if q2 != nil {
+			out = append(out, q2)
+		}
+	}
+	return out
+}
+
+func buildTopologyQuery(cfg *loki.Config, queryFilters filters.SingleQuery, start, end, limit, rateInterval, step, metricType string, recordType constants.RecordType, packetLoss constants.PacketLoss, aggregate, groups string) (string, int, error) {
+	qb, err := loki.NewTopologyQuery(cfg, start, end, limit, rateInterval, step, metricType, recordType, packetLoss, aggregate, groups)
 	if err != nil {
 		return "", http.StatusBadRequest, err
 	}

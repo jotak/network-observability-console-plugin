@@ -1,6 +1,5 @@
 import { Filter } from './filters';
 
-export type Reporter = 'source' | 'destination' | 'both';
 export type RecordType = 'allConnections' | 'newConnection' | 'heartbeat' | 'endConnection' | 'flowLog';
 export type Match = 'all' | 'any';
 export type PacketLoss = 'dropped' | 'hasDrops' | 'sent' | 'all';
@@ -15,7 +14,7 @@ export interface FlowQuery {
   startTime?: string;
   endTime?: string;
   filters: string;
-  reporter?: Reporter;
+  dedup?: boolean;
   recordType: RecordType;
   packetLoss: PacketLoss;
   limit: number;

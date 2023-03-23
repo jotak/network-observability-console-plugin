@@ -37,6 +37,7 @@ const (
 	TCPDropBytes   = "TcpDropBytes"
 	FlowDirection  = "FlowDirection"
 	DNSID          = "DnsId"
+	Duplicate      = "Duplicate"
 )
 
 func IsNumeric(v string) bool {
