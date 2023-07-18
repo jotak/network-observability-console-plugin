@@ -5,9 +5,9 @@ import {
   TopologyMetricPeer,
   TopologyMetrics,
   NameAndType,
-  DroppedTopologyMetrics
+  DroppedMetric
 } from '../api/loki';
-import { MetricFunction, MetricType, AggregateBy } from '../model/flow-query';
+import { MetricFunction, MetricType, FlowScope, DropAggregation } from '../model/flow-query';
 import { roundTwoDigits } from './count';
 import { computeStepInterval, rangeToSeconds, TimeRange } from './datetime';
 import { valueFormat } from './format';
@@ -27,20 +27,20 @@ const shortKindMap: { [k: string]: string } = {
   StatefulSet: 'sts'
 };
 
-export const parseMetrics = (
+export const parseTopologyMetrics = (
   raw: RawTopologyMetrics[],
   range: number | TimeRange,
-  aggregateBy: AggregateBy,
+  aggregateBy: FlowScope,
   unixTimestamp: number,
   isMock?: boolean
-): (TopologyMetrics | DroppedTopologyMetrics)[] => {
+): TopologyMetrics[] => {
   const { start, end, step } = calibrateRange(
     raw.map(r => r.values),
     range,
     unixTimestamp,
     isMock
   );
-  const metrics = raw.map(r => parseMetric(r, start, end, step, aggregateBy));
+  const metrics = raw.map(r => parseTopologyMetric(r, start, end, step, aggregateBy));
 
   // Disambiguate display names with kind when necessary
   if (aggregateBy === 'owner' || aggregateBy === 'resource') {
@@ -82,6 +82,22 @@ export const parseMetrics = (
     });
   }
   return metrics;
+};
+
+export const parseDroppedMetrics = (
+  raw: RawTopologyMetrics[],
+  range: number | TimeRange,
+  aggregateBy: DropAggregation,
+  unixTimestamp: number,
+  isMock?: boolean
+): DroppedMetric[] => {
+  const { start, end, step } = calibrateRange(
+    raw.map(r => r.values),
+    range,
+    unixTimestamp,
+    isMock
+  );
+  return raw.map(r => parseDroppedMetric(r, start, end, step, aggregateBy));
 };
 
 export const createPeer = (fields: Partial<TopologyMetricPeer>): TopologyMetricPeer => {
@@ -128,52 +144,53 @@ const nameAndType = (name?: string, type?: string): NameAndType | undefined => {
   return name && type ? { name, type } : undefined;
 };
 
-const parseMetric = (
+const parseTopologyMetric = (
   raw: RawTopologyMetrics,
   start: number,
   end: number,
   step: number,
-  aggregateBy: AggregateBy
-): TopologyMetrics | DroppedTopologyMetrics => {
+  aggregateBy: FlowScope
+): TopologyMetrics => {
   const normalized = normalizeMetrics(raw.values, start, end, step);
   const stats = computeStats(normalized);
-  if (aggregateBy === 'droppedState') {
-    return {
-      name: raw.metric.TcpDropLatestState,
-      values: normalized,
-      stats: stats,
-      aggregateBy
-    } as DroppedTopologyMetrics;
-  } else if (aggregateBy === 'droppedCause') {
-    return {
-      name: raw.metric.TcpDropLatestDropCause,
-      values: normalized,
-      stats: stats,
-      aggregateBy
-    } as DroppedTopologyMetrics;
-  } else {
-    const source = createPeer({
-      addr: raw.metric.SrcAddr,
-      resource: nameAndType(raw.metric.SrcK8S_Name, raw.metric.SrcK8S_Type),
-      owner: nameAndType(raw.metric.SrcK8S_OwnerName, raw.metric.SrcK8S_OwnerType),
-      namespace: raw.metric.SrcK8S_Namespace,
-      hostName: raw.metric.SrcK8S_HostName
-    });
-    const destination = createPeer({
-      addr: raw.metric.DstAddr,
-      resource: nameAndType(raw.metric.DstK8S_Name, raw.metric.DstK8S_Type),
-      owner: nameAndType(raw.metric.DstK8S_OwnerName, raw.metric.DstK8S_OwnerType),
-      namespace: raw.metric.DstK8S_Namespace,
-      hostName: raw.metric.DstK8S_HostName
-    });
-    return {
-      source: source,
-      destination: destination,
-      values: normalized,
-      stats: stats,
-      scope: aggregateBy
-    } as TopologyMetrics;
-  }
+  const source = createPeer({
+    addr: raw.metric.SrcAddr,
+    resource: nameAndType(raw.metric.SrcK8S_Name, raw.metric.SrcK8S_Type),
+    owner: nameAndType(raw.metric.SrcK8S_OwnerName, raw.metric.SrcK8S_OwnerType),
+    namespace: raw.metric.SrcK8S_Namespace,
+    hostName: raw.metric.SrcK8S_HostName
+  });
+  const destination = createPeer({
+    addr: raw.metric.DstAddr,
+    resource: nameAndType(raw.metric.DstK8S_Name, raw.metric.DstK8S_Type),
+    owner: nameAndType(raw.metric.DstK8S_OwnerName, raw.metric.DstK8S_OwnerType),
+    namespace: raw.metric.DstK8S_Namespace,
+    hostName: raw.metric.DstK8S_HostName
+  });
+  return {
+    source: source,
+    destination: destination,
+    values: normalized,
+    stats: stats,
+    scope: aggregateBy
+  };
+};
+
+const parseDroppedMetric = (
+  raw: RawTopologyMetrics,
+  start: number,
+  end: number,
+  step: number,
+  aggregateBy: DropAggregation
+): DroppedMetric => {
+  const normalized = normalizeMetrics(raw.values, start, end, step);
+  const stats = computeStats(normalized);
+  return {
+    name: (aggregateBy === 'droppedState' ? raw.metric.TcpDropLatestState : raw.metric.TcpDropLatestDropCause) || '',
+    values: normalized,
+    stats: stats,
+    aggregateBy
+  };
 };
 
 export const calibrateRange = (

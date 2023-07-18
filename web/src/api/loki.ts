@@ -1,4 +1,4 @@
-import { AggregateBy, FlowScope } from '../model/flow-query';
+import { DropAggregation, FlowScope } from '../model/flow-query';
 import { cyrb53 } from '../utils/hash';
 import { Fields, Labels, Record } from './ipfix';
 
@@ -26,8 +26,13 @@ export class RecordsResult {
   stats: Stats;
 }
 
-export class TopologyResult {
-  metrics: (TopologyMetrics | DroppedTopologyMetrics)[];
+export class TopologyMetricsResult {
+  metrics: TopologyMetrics[];
+  stats: Stats;
+}
+
+export class DroppedMetricsResult {
+  metrics: DroppedMetric[];
   stats: Stats;
 }
 
@@ -83,11 +88,11 @@ export interface TopologyMetricPeer {
   getDisplayName: (inclNamespace: boolean, disambiguate: boolean) => string | undefined;
 }
 
-export type DroppedTopologyMetrics = {
+export type DroppedMetric = {
   name: string;
   values: [number, number][];
   stats: MetricStats;
-  aggregateBy: AggregateBy;
+  aggregateBy: DropAggregation;
 };
 
 export type TopologyMetrics = {

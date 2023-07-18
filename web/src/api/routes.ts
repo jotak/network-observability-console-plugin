@@ -1,18 +1,20 @@
 import axios from 'axios';
 import { Config, defaultConfig } from '../model/config';
 import { buildExportQuery } from '../model/export-query';
-import { FlowQuery } from '../model/flow-query';
+import { DropAggregation, FlowQuery, FlowScope } from '../model/flow-query';
 import { ContextSingleton } from '../utils/context';
 import { TimeRange } from '../utils/datetime';
-import { parseMetrics } from '../utils/metrics';
+import { parseTopologyMetrics, parseDroppedMetrics } from '../utils/metrics';
 import { AlertsResult, SilencedAlert } from './alert';
 import {
   AggregatedQueryResponse,
+  DroppedMetricsResult,
   parseStream,
   RawTopologyMetrics,
   RecordsResult,
+  Stats,
   StreamResult,
-  TopologyResult
+  TopologyMetricsResult
 } from './loki';
 
 export const getFlows = (params: FlowQuery): Promise<RecordsResult> => {
@@ -72,20 +74,40 @@ export const getResources = (namespace: string, kind: string): Promise<string[]>
   });
 };
 
-export const getTopology = (params: FlowQuery, range: number | TimeRange): Promise<TopologyResult> => {
+export const getTopologyMetrics = (params: FlowQuery, range: number | TimeRange): Promise<TopologyMetricsResult> => {
+  return getMetricsGeneric(params, res => {
+    return parseTopologyMetrics(
+      res.result as RawTopologyMetrics[],
+      range,
+      params.aggregateBy as FlowScope,
+      res.unixTimestamp,
+      res.isMock
+    );
+  });
+};
+
+export const getDroppedMetrics = (params: FlowQuery, range: number | TimeRange): Promise<DroppedMetricsResult> => {
+  return getMetricsGeneric(params, res => {
+    return parseDroppedMetrics(
+      res.result as RawTopologyMetrics[],
+      range,
+      params.aggregateBy as DropAggregation,
+      res.unixTimestamp,
+      res.isMock
+    );
+  });
+};
+
+const getMetricsGeneric = <T>(
+  params: FlowQuery,
+  mapper: (raw: AggregatedQueryResponse) => T
+): Promise<{ metrics: T; stats: Stats }> => {
   return axios.get(ContextSingleton.getHost() + '/api/loki/topology', { params }).then(r => {
     if (r.status >= 400) {
       throw new Error(`${r.statusText} [code=${r.status}]`);
     }
     const aggQR: AggregatedQueryResponse = r.data;
-    const metrics = parseMetrics(
-      aggQR.result as RawTopologyMetrics[],
-      range,
-      params.aggregateBy!,
-      aggQR.unixTimestamp,
-      aggQR.isMock
-    );
-    return { metrics: metrics, stats: aggQR.stats };
+    return { metrics: mapper(aggQR), stats: aggQR.stats };
   });
 };
 

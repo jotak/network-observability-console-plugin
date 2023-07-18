@@ -31,8 +31,8 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../utils/theme-hook';
 import { Record } from '../api/ipfix';
-import { DroppedTopologyMetrics, Stats, TopologyMetrics } from '../api/loki';
-import { getFlows, getTopology } from '../api/routes';
+import { DroppedMetric, Stats, TopologyMetrics } from '../api/loki';
+import { getDroppedMetrics, getFlows, getTopologyMetrics } from '../api/routes';
 import {
   DisabledFilters,
   Filter,
@@ -189,8 +189,8 @@ export const NetflowTraffic: React.FC<{
   const [droppedMetrics, setDroppedMetrics] = React.useState<TopologyMetrics[]>([]);
   const [totalMetric, setTotalMetric] = React.useState<TopologyMetrics | undefined>(undefined);
   const [totalDroppedMetric, setTotalDroppedMetric] = React.useState<TopologyMetrics | undefined>(undefined);
-  const [droppedStateMetrics, setDroppedStateMetrics] = React.useState<DroppedTopologyMetrics[] | undefined>(undefined);
-  const [droppedCauseMetrics, setDroppedCauseMetrics] = React.useState<DroppedTopologyMetrics[] | undefined>(undefined);
+  const [droppedStateMetrics, setDroppedStateMetrics] = React.useState<DroppedMetric[] | undefined>(undefined);
+  const [droppedCauseMetrics, setDroppedCauseMetrics] = React.useState<DroppedMetric[] | undefined>(undefined);
   const [isShowQuerySummary, setShowQuerySummary] = React.useState<boolean>(false);
   const [lastRefresh, setLastRefresh] = React.useState<Date | undefined>(undefined);
   const [error, setError] = React.useState<string | undefined>();
@@ -411,8 +411,8 @@ export const NetflowTraffic: React.FC<{
       ];
       if (showHistogram) {
         promises.push(
-          getTopology({ ...fq, aggregateBy: 'app' }, range).then(res => {
-            setTotalMetric(res.metrics[0] as TopologyMetrics);
+          getTopologyMetrics({ ...fq, aggregateBy: 'app' }, range).then(res => {
+            setTotalMetric(res.metrics[0]);
             return res.stats;
           })
         );
@@ -421,8 +421,8 @@ export const NetflowTraffic: React.FC<{
       }
       if (droppedType) {
         promises.push(
-          getTopology({ ...fq, aggregateBy: 'app', type: droppedType }, range).then(res => {
-            setTotalDroppedMetric(res.metrics[0] as TopologyMetrics);
+          getTopologyMetrics({ ...fq, aggregateBy: 'app', type: droppedType }, range).then(res => {
+            setTotalDroppedMetric(res.metrics[0]);
             return res.stats;
           })
         );
@@ -439,14 +439,14 @@ export const NetflowTraffic: React.FC<{
       setFlows([]);
       const promises: Promise<Stats>[] = [
         //get bytes or packets
-        getTopology(fq, range).then(res => {
-          setMetrics(res.metrics as TopologyMetrics[]);
+        getTopologyMetrics(fq, range).then(res => {
+          setMetrics(res.metrics);
           return res.stats;
         }),
 
         //run same query on app scope for total flows
-        getTopology({ ...fq, aggregateBy: 'app' }, range).then(res => {
-          setTotalMetric(res.metrics[0] as TopologyMetrics);
+        getTopologyMetrics({ ...fq, aggregateBy: 'app' }, range).then(res => {
+          setTotalMetric(res.metrics[0]);
           return res.stats;
         })
       ];
@@ -455,22 +455,22 @@ export const NetflowTraffic: React.FC<{
         //run same queries for drops
         promises.push(
           ...[
-            getTopology({ ...fq, type: droppedType }, range).then(res => {
-              setDroppedMetrics(res.metrics as TopologyMetrics[]);
+            getTopologyMetrics({ ...fq, type: droppedType }, range).then(res => {
+              setDroppedMetrics(res.metrics);
               return res.stats;
             }),
-            getTopology({ ...fq, aggregateBy: 'app', type: droppedType }, range).then(res => {
-              setTotalDroppedMetric(res.metrics[0] as TopologyMetrics);
+            getTopologyMetrics({ ...fq, aggregateBy: 'app', type: droppedType }, range).then(res => {
+              setTotalDroppedMetric(res.metrics[0]);
               return res.stats;
             }),
 
             //get drop state & cause
-            getTopology({ ...fq, type: droppedType, aggregateBy: 'droppedState' }, range).then(res => {
-              setDroppedStateMetrics(res.metrics as DroppedTopologyMetrics[]);
+            getDroppedMetrics({ ...fq, type: droppedType, aggregateBy: 'droppedState' }, range).then(res => {
+              setDroppedStateMetrics(res.metrics);
               return res.stats;
             }),
-            getTopology({ ...fq, type: droppedType, aggregateBy: 'droppedCause' }, range).then(res => {
-              setDroppedCauseMetrics(res.metrics as DroppedTopologyMetrics[]);
+            getDroppedMetrics({ ...fq, type: droppedType, aggregateBy: 'droppedCause' }, range).then(res => {
+              setDroppedCauseMetrics(res.metrics);
               return res.stats;
             })
           ]
@@ -491,16 +491,16 @@ export const NetflowTraffic: React.FC<{
       setFlows([]);
       const promises: Promise<Stats>[] = [
         //get bytes or packets
-        getTopology(fq, range).then(res => {
-          setMetrics(res.metrics as TopologyMetrics[]);
+        getTopologyMetrics(fq, range).then(res => {
+          setMetrics(res.metrics);
           return res.stats;
         })
       ];
 
       if (droppedType) {
         promises.push(
-          getTopology({ ...fq, type: droppedType }, range).then(res => {
-            setDroppedMetrics(res.metrics as TopologyMetrics[]);
+          getTopologyMetrics({ ...fq, type: droppedType }, range).then(res => {
+            setDroppedMetrics(res.metrics);
             return res.stats;
           })
         );

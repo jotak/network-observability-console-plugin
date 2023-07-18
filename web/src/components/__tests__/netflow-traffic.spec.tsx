@@ -3,12 +3,12 @@ import { mount, render, shallow } from 'enzyme';
 import * as React from 'react';
 import { waitFor } from '@testing-library/react';
 import { act } from 'react-dom/test-utils';
-import { getConfig, getFlows, getTopology } from '../../api/routes';
+import { getConfig, getDroppedMetrics, getFlows, getTopologyMetrics } from '../../api/routes';
 import NetflowTraffic from '../netflow-traffic';
 import { extensionsMock } from '../__tests-data__/extensions';
 import { FlowsResultSample } from '../__tests-data__/flows';
 import NetflowTrafficParent from '../netflow-traffic-parent';
-import { TopologyResult } from '../../api/loki';
+import { DroppedMetricsResult, TopologyMetricsResult } from '../../api/loki';
 import { AlertsResult, SilencedAlert } from '../../api/alert';
 import { ConfigResultSample } from '../__tests-data__/config';
 
@@ -17,15 +17,19 @@ const useResolvedExtensionsMock = useResolvedExtensions as jest.Mock;
 jest.mock('../../api/routes', () => ({
   getConfig: jest.fn(() => Promise.resolve(ConfigResultSample)),
   getFlows: jest.fn(() => Promise.resolve(FlowsResultSample)),
-  getTopology: jest.fn(() =>
-    Promise.resolve({ metrics: [], stats: { numQueries: 0, limitReached: false } } as TopologyResult)
+  getTopologyMetrics: jest.fn(() =>
+    Promise.resolve({ metrics: [], stats: { numQueries: 0, limitReached: false } } as TopologyMetricsResult)
+  ),
+  getDroppedMetrics: jest.fn(() =>
+    Promise.resolve({ metrics: [], stats: { numQueries: 0, limitReached: false } } as DroppedMetricsResult)
   ),
   getAlerts: jest.fn(() => Promise.resolve({ data: { groups: [] }, status: 'success' } as AlertsResult)),
   getSilencedAlerts: jest.fn(() => Promise.resolve([] as SilencedAlert[]))
 }));
 const getConfigMock = getConfig as jest.Mock;
 const getFlowsMock = getFlows as jest.Mock;
-const getTopologyMock = getTopology as jest.Mock;
+const getTopologyMock = getTopologyMetrics as jest.Mock;
+const getDroppedMock = getDroppedMetrics as jest.Mock;
 
 describe('<NetflowTraffic />', () => {
   beforeAll(() => {
@@ -52,13 +56,14 @@ describe('<NetflowTraffic />', () => {
       //config is get only once
       expect(getConfigMock).toHaveBeenCalledTimes(1);
       expect(getFlowsMock).toHaveBeenCalledTimes(0);
-      /** should have called getTopology 6 times on render
+      /** should have called getTopology 4 times on render
        * 2 queries for metrics on current scope & app scope
        * 2 queries for dropped metrics on current scope & app scope
        * dropped states
        * dropped causes
        */
-      expect(getTopologyMock).toHaveBeenCalledTimes(6);
+      expect(getTopologyMock).toHaveBeenCalledTimes(4);
+      expect(getDroppedMock).toHaveBeenCalledTimes(2);
     });
     await act(async () => {
       wrapper.find('#refresh-button').at(0).simulate('click');
@@ -67,8 +72,9 @@ describe('<NetflowTraffic />', () => {
       //config is get only once
       expect(getConfigMock).toHaveBeenCalledTimes(1);
       expect(getFlowsMock).toHaveBeenCalledTimes(0);
-      //should have called getTopology 12 times after click (6 * 2)
-      expect(getTopologyMock).toHaveBeenCalledTimes(12);
+      //should have called getTopology 8 times after click (4 * 2)
+      expect(getTopologyMock).toHaveBeenCalledTimes(8);
+      expect(getDroppedMock).toHaveBeenCalledTimes(4);
     });
   });
 
