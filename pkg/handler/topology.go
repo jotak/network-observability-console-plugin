@@ -87,7 +87,9 @@ func getTopologyFlows(cfg *loki.Config, client httpclient.Caller, params url.Val
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
-	filterGroups = expandReportersMergeQueries(filterGroups)
+	if shouldMergeReporters(metricType) {
+		filterGroups = expandReportersMergeQueries(filterGroups)
+	}
 
 	merger := loki.NewMatrixMerger(reqLimit)
 	if len(filterGroups) > 1 {
@@ -125,6 +127,11 @@ func getTopologyFlows(cfg *loki.Config, client httpclient.Caller, params url.Val
 	qr.UnixTimestamp = time.Now().Unix()
 	hlog.Tracef("GetTopology response: %v", qr)
 	return qr, http.StatusOK, nil
+}
+
+func shouldMergeReporters(metricType constants.MetricType) bool {
+	return metricType == constants.MetricTypeBytes ||
+		metricType == constants.MetricTypePackets
 }
 
 func expandReportersMergeQueries(queries filters.MultiQueries) filters.MultiQueries {

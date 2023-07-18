@@ -64,7 +64,6 @@ func SplitForReportersMerge(q SingleQuery) (SingleQuery, SingleQuery) {
 		}
 	}
 	// The rationale here is that most traffic is duplicated from ingress and egress PoV, except cluster-external traffic.
-	// TODO: this assumption seems wrong wrt Dropped traffic; need to figure out how to deal with it.
 	// Merging is done by running a first query with FlowDirection=EGRESS and another with FlowDirection=INGRESS AND SrcOwnerName is empty,
 	// which stands for cluster-external.
 	// (Note that we use SrcOwnerName both as an optimization as it's a Loki index,
