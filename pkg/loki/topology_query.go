@@ -27,7 +27,7 @@ type TopologyQueryBuilder struct {
 	topology *Topology
 }
 
-func NewTopologyQuery(cfg *Config, start, end, limit, rateInterval, step, metricType string,
+func NewTopologyQuery(cfg *Config, start, end, limit, rateInterval, step string, metricType constants.MetricType,
 	recordType constants.RecordType, packetLoss constants.PacketLoss,
 	aggregate, groups string) (*TopologyQueryBuilder, error) {
 	l := limit
@@ -38,18 +38,18 @@ func NewTopologyQuery(cfg *Config, start, end, limit, rateInterval, step, metric
 	fields := getFields(aggregate, groups)
 	var f, t string
 	switch metricType {
-	case "count":
+	case constants.MetricTypeCount:
 		f = "count_over_time"
-	case "droppedPackets":
+	case constants.MetricTypeDroppedPackets:
 		f = "rate"
 		t = "TcpDropPackets"
-	case "packets":
+	case constants.MetricTypePackets:
 		f = "rate"
 		t = "Packets"
-	case "droppedBytes":
+	case constants.MetricTypeDroppedBytes:
 		f = "rate"
 		t = "TcpDropBytes"
-	default:
+	case constants.MetricTypeBytes:
 		f = "rate"
 		t = "Bytes"
 	}

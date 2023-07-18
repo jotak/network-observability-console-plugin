@@ -60,17 +60,26 @@ func getTopologyFlows(cfg *loki.Config, client httpclient.Caller, params url.Val
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
-	rateInterval := params.Get(rateIntervalKey)
-	if rateInterval == "" {
-		rateInterval = defaultRateInterval
+	rateInterval, err := getRateInterval(params)
+	if err != nil {
+		return nil, http.StatusBadRequest, err
 	}
-	step := params.Get(stepKey)
-	if step == "" {
-		step = defaultStep
+	step, err := getStep(params)
+	if err != nil {
+		return nil, http.StatusBadRequest, err
 	}
-	metricType := params.Get(metricTypeKey)
-	recordType := constants.RecordType(params.Get(recordTypeKey))
-	packetLoss := constants.PacketLoss(params.Get(packetLossKey))
+	metricType, err := getMetricType(params)
+	if err != nil {
+		return nil, http.StatusBadRequest, err
+	}
+	recordType, err := getRecordType(params)
+	if err != nil {
+		return nil, http.StatusBadRequest, err
+	}
+	packetLoss, err := getPacketLoss(params)
+	if err != nil {
+		return nil, http.StatusBadRequest, err
+	}
 	aggregate := params.Get(aggregateByKey)
 	groups := params.Get(groupsKey)
 	rawFilters := params.Get(filtersKey)
@@ -132,7 +141,7 @@ func expandReportersMergeQueries(queries filters.MultiQueries) filters.MultiQuer
 	return out
 }
 
-func buildTopologyQuery(cfg *loki.Config, queryFilters filters.SingleQuery, start, end, limit, rateInterval, step, metricType string, recordType constants.RecordType, packetLoss constants.PacketLoss, aggregate, groups string) (string, int, error) {
+func buildTopologyQuery(cfg *loki.Config, queryFilters filters.SingleQuery, start, end, limit, rateInterval, step string, metricType constants.MetricType, recordType constants.RecordType, packetLoss constants.PacketLoss, aggregate, groups string) (string, int, error) {
 	qb, err := loki.NewTopologyQuery(cfg, start, end, limit, rateInterval, step, metricType, recordType, packetLoss, aggregate, groups)
 	if err != nil {
 		return "", http.StatusBadRequest, err

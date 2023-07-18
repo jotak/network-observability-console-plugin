@@ -321,6 +321,7 @@ func TestLokiConfigurationForTopology(t *testing.T) {
 	require.NoError(t, err)
 
 	// THEN the query has been properly forwarded to Loki
+	// Two queries for dedup
 	assert.Len(t, lokiMock.Calls, 2)
 	req1 := lokiMock.Calls[0].Arguments[1].(*http.Request)
 	req2 := lokiMock.Calls[1].Arguments[1].(*http.Request)
@@ -376,22 +377,16 @@ func TestLokiConfigurationForTableHistogram(t *testing.T) {
 	require.NoError(t, err)
 
 	// THEN the query has been properly forwarded to Loki
-	assert.Len(t, lokiMock.Calls, 2)
+	// Single query: no dedup for "count"
+	assert.Len(t, lokiMock.Calls, 1)
 	req1 := lokiMock.Calls[0].Arguments[1].(*http.Request)
-	req2 := lokiMock.Calls[1].Arguments[1].(*http.Request)
-	queries := []string{req1.URL.Query().Get("query"), req2.URL.Query().Get("query")}
-	expected := []string{
-		`topk(100,sum by(SrcK8S_Name,SrcK8S_Type,SrcK8S_OwnerName,SrcK8S_OwnerType,SrcK8S_Namespace,SrcAddr,SrcK8S_HostName,DstK8S_Name,DstK8S_Type,DstK8S_OwnerName,DstK8S_OwnerType,DstK8S_Namespace,DstAddr,DstK8S_HostName) (count_over_time({app="netobserv-flowcollector",FlowDirection="1"}|~` + "`" + `Duplicate":false` + "`" + `|json[30s])))`,
-		`topk(100,sum by(SrcK8S_Name,SrcK8S_Type,SrcK8S_OwnerName,SrcK8S_OwnerType,SrcK8S_Namespace,SrcAddr,SrcK8S_HostName,DstK8S_Name,DstK8S_Type,DstK8S_OwnerName,DstK8S_OwnerType,DstK8S_Namespace,DstAddr,DstK8S_HostName) (count_over_time({app="netobserv-flowcollector",FlowDirection="0",SrcK8S_OwnerName=""}|~` + "`" + `Duplicate":false` + "`" + `|json[30s])))`,
-	}
-	// We don't predict the order so sort both actual and expected
-	sort.Strings(queries)
-	sort.Strings(expected)
-	assert.Equal(t, expected, queries)
+	query := req1.URL.Query().Get("query")
+	expected :=
+		`topk(100,sum by(SrcK8S_Name,SrcK8S_Type,SrcK8S_OwnerName,SrcK8S_OwnerType,SrcK8S_Namespace,SrcAddr,SrcK8S_HostName,DstK8S_Name,DstK8S_Type,DstK8S_OwnerName,DstK8S_OwnerType,DstK8S_Namespace,DstAddr,DstK8S_HostName) (count_over_time({app="netobserv-flowcollector"}|~` + "`" + `Duplicate":false` + "`" + `|json[30s])))`
+	assert.Equal(t, expected, query)
 
 	// without any multi-tenancy header
 	assert.Empty(t, req1.Header.Get("X-Scope-OrgID"))
-	assert.Empty(t, req2.Header.Get("X-Scope-OrgID"))
 
 	// AND the response is sent back to the client
 	body, err := io.ReadAll(resp.Body)
