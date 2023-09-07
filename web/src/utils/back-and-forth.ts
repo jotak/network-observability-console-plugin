@@ -21,10 +21,7 @@ export const getFetchFunctions = (filters: Filters, matchAny: boolean) => {
       };
     }
   }
-  return {
-    getFlows: getFlows,
-    getTopologyMetrics: getTopologyMetrics
-  };
+  return { getFlows, getTopologyMetrics };
 };
 
 const encodedPipe = encodeURIComponent('|');
@@ -39,7 +36,7 @@ const getFlowsBNF = (
   return getFlows({ ...initialQuery, filters: newFilters });
 };
 
-const getTopologyMetricsBNF = (
+const getTopologyMetricsBNF = async (
   initialQuery: FlowQuery,
   range: number | TimeRange,
   orig: Filter[],
@@ -51,20 +48,12 @@ const getTopologyMetricsBNF = (
   // OVERLAP being ORIGINAL AND SWAPPED.
   // E.g: if ORIGINAL is "SrcNs=foo", SWAPPED is "DstNs=foo" and OVERLAP is "SrcNs=foo AND DstNs=foo"
   const overlapFilters = matchAny ? undefined : [...orig, ...swapped];
-  const promOrig = getTopologyMetrics(initialQuery, range);
-  const promSwapped = getTopologyMetrics({ ...initialQuery, filters: filtersToString(swapped, matchAny) }, range);
-  const promOverlap = overlapFilters
-    ? getTopologyMetrics(
-        {
-          ...initialQuery,
-          filters: filtersToString(overlapFilters, matchAny)
-        },
-        range
-      )
-    : Promise.resolve(undefined);
-  return Promise.all([promOrig, promSwapped, promOverlap]).then(([rsOrig, rsSwapped, rsOverlap]) =>
-    mergeTopologyMetricsBNF(range, rsOrig, rsSwapped, rsOverlap)
-  );
+  const rsOrig = await getTopologyMetrics(initialQuery, range);
+  const rsSwapped = await getTopologyMetrics({ ...initialQuery, filters: filtersToString(swapped, matchAny) }, range);
+  const rsOverlap = overlapFilters
+    ? await getTopologyMetrics({ ...initialQuery, filters: filtersToString(overlapFilters, matchAny) }, range)
+    : undefined;
+  return mergeTopologyMetricsBNF(range, rsOrig, rsSwapped, rsOverlap);
 };
 
 // exported for testing

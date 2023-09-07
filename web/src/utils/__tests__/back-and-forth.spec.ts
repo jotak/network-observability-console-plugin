@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react';
 import { findFilter } from '../filter-definitions';
 import { Filter, FilterId, FilterValue, Filters } from '../../model/filters';
 import { getFlows, getTopologyMetrics } from '../../api/routes';
@@ -304,7 +305,7 @@ describe('Match all, topology', () => {
     );
   });
 
-  it('should generate AND groups, back and forth', () => {
+  it('should generate AND groups, back and forth', async () => {
     getTopoForFilter(
       {
         list: [filter('src_name', [{ v: 'test1' }, { v: 'test2' }]), filter('dst_port', [{ v: '443' }])],
@@ -312,12 +313,18 @@ describe('Match all, topology', () => {
       },
       false
     );
-    expect(getTopologyMock).toHaveBeenCalledTimes(3);
-    expect(decodeURIComponent(getTopologyMock.mock.calls[0][0].filters)).toEqual('SrcK8S_Name=test1,test2&DstPort=443');
-    expect(decodeURIComponent(getTopologyMock.mock.calls[1][0].filters)).toEqual('DstK8S_Name=test1,test2&SrcPort=443');
-    expect(decodeURIComponent(getTopologyMock.mock.calls[2][0].filters)).toEqual(
-      'SrcK8S_Name=test1,test2&DstPort=443&DstK8S_Name=test1,test2&SrcPort=443'
-    );
+    await waitFor(() => {
+      expect(getTopologyMock).toHaveBeenCalledTimes(3);
+      expect(decodeURIComponent(getTopologyMock.mock.calls[0][0].filters)).toEqual(
+        'SrcK8S_Name=test1,test2&DstPort=443'
+      );
+      expect(decodeURIComponent(getTopologyMock.mock.calls[1][0].filters)).toEqual(
+        'DstK8S_Name=test1,test2&SrcPort=443'
+      );
+      expect(decodeURIComponent(getTopologyMock.mock.calls[2][0].filters)).toEqual(
+        'SrcK8S_Name=test1,test2&DstPort=443&DstK8S_Name=test1,test2&SrcPort=443'
+      );
+    });
   });
 });
 
