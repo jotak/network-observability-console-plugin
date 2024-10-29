@@ -9,7 +9,6 @@ import { Config } from '../../../model/config';
 import { FlowQuery } from '../../../model/flow-query';
 import { Column, ColumnsId, ColumnSizeMap } from '../../../utils/columns';
 import { TimeRange } from '../../../utils/datetime';
-import { mergeFlowReporters } from '../../../utils/flows';
 import {
   localStorageSortDirectionKey,
   localStorageSortIdKey,
@@ -103,7 +102,7 @@ export const NetflowTable: React.FC<NetflowTableProps> = React.forwardRef(
         }
         const promises: Promise<Stats>[] = [
           getRecords(tableQuery).then(res => {
-            const flows = showDuplicates ? res.records : mergeFlowReporters(res.records);
+            const flows = res.records;
             setFlows(flows);
             return res.stats;
           })
