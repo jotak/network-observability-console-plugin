@@ -433,6 +433,15 @@ frontend:
       default: false
       width: 15
       feature: zones
+    - id: DstK8S_ServiceName
+      group: Destination
+      name: Service Name
+      tooltip: The destination service name.
+      field: DstK8S_ServiceName
+      filter: dst_service_name
+      calculated: kubeObject('Service',DstK8S_Namespace,DstK8S_ServiceName,0)
+      default: true
+      width: 15
     - id: K8S_Name
       name: Names
       calculated: '[SrcK8S_Name,DstK8S_Name]'
@@ -902,6 +911,21 @@ frontend:
                 - A protocol number like 6, 17
                 - A IANA name like TCP, UDP
       docUrl: https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+    - id: dst_service_name
+      name: Service Name
+      component: text
+      category: destination
+      placeholder: 'E.g: my-service'
+      hint: Specify a single kubernetes name.
+      examples: |-
+        Specify a single kubernetes name following these rules:
+            - Containing any alphanumeric, hyphen, underscrore or dot character
+            - Partial text like cluster, cluster-image, image-registry
+            - Exact match using quotes like "cluster-image-registry"
+            - Case sensitive match using quotes like "Deployment"
+            - Starting text like cluster, "cluster-*"
+            - Ending text like "*-registry"
+            - Pattern like "cluster-*-registry", "c*-*-r*y", -i*e-
     - id: dscp
       name: DSCP
       component: autocomplete
@@ -1195,6 +1219,12 @@ frontend:
     - name: K8S_FlowLayer
       type: string
       description: "Flow layer: 'app' or 'infra'"
+    - name: DstK8S_ServiceName
+      type: string
+      description: Destination service name
+    - name: DstK8S_ServiceIP
+      type: string
+      description: Destination service IP
     - name: Proto
       type: number
       description: L4 protocol
