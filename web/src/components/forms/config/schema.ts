@@ -213,7 +213,7 @@ export const FlowCollectorSchema: RJSFSchema | any = {
               }
             },
             topic: {
-              description: 'Kafka topic to use. It must exist. network observability does not create it.',
+              description: 'An existing Kafka topic (network observability does not create it).',
               type: 'string',
               default: ''
             }
@@ -230,7 +230,7 @@ export const FlowCollectorSchema: RJSFSchema | any = {
               properties: {
                 sampling: {
                   description:
-                    'Sampling rate of the flow reporter. 100 means one flow on 100 is sent. 0 or 1 means all flows are sampled.',
+                    'Sampling ratio of the eBPF probe. 100 means one packet on 100 is sent. 0 or 1 means all packets are sampled.',
                   type: 'integer',
                   format: 'int32',
                   default: 50,
@@ -247,7 +247,7 @@ export const FlowCollectorSchema: RJSFSchema | any = {
                   type: 'array',
                   items: {
                     description:
-                      'Agent feature, can be one of:\n- `PacketDrop`, to track packet drops.\n- `DNSTracking`, to track specific information on DNS traffic.\n- `FlowRTT`, to track TCP latency.\n- `NetworkEvents`, to track network events [Technology Preview].\n- `PacketTranslation`, to enrich flows with packets translation information, such as Service NAT.\n- `EbpfManager`, to enable using eBPF Manager to manage network observability eBPF programs. [Unsupported (*)].\n- `UDNMapping`, to enable interfaces mapping to UDN. [Unsupported (*)].',
+                      'Agent feature, can be any of:\n- `PacketDrop`, to track packet drops.\n- `DNSTracking`, to track specific information on DNS traffic.\n- `FlowRTT`, to track TCP latency.\n- `NetworkEvents`, to track network events [Technology Preview].\n- `PacketTranslation`, to enrich flows with packets translation information, such as Service NAT.\n- `EbpfManager`, to enable using eBPF Manager to manage network observability eBPF programs. [Unsupported (*)].\n- `UDNMapping`, to enable interfaces mapping to UDN. [Unsupported (*)].',
                     type: 'string',
                     enum: [
                       'PacketDrop',
@@ -5762,7 +5762,7 @@ export const FlowCollectorSchema: RJSFSchema | any = {
                     }
                   },
                   topic: {
-                    description: 'Kafka topic to use. It must exist. network observability does not create it.',
+                    description: 'An existing Kafka topic (network observability does not create it).',
                     type: 'string',
                     default: ''
                   }

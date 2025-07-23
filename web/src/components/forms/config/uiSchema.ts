@@ -29,7 +29,7 @@ export const FlowCollectorUISchema: UiSchema = {
     },
     kafka: {
       'ui:title': 'Kafka configuration',
-      'ui:description': 'Kafka as a broker as part of the flow collection pipeline.',
+      'ui:description': 'A Kafka broker needs to be installed. It is used as part of the flow collection pipeline.',
       'ui:dependency': {
         controlFieldPath: ['deploymentModel'],
         controlFieldValue: 'Kafka',
@@ -60,26 +60,13 @@ export const FlowCollectorUISchema: UiSchema = {
         'ui:order': ['enable', 'caCert', 'userCert', 'insecureSkipVerify']
       },
       sasl: {
-        'ui:title': 'SASL',
-        'ui:description': 'SASL authentication configuration. Unsupported.',
-        type: {
-          'ui:title': 'Type'
-        },
-        clientIDReference: {
-          'ui:title': 'Client ID reference',
-          'ui:order': ['file', 'name', 'namespace', 'type']
-        },
-        clientSecretReference: {
-          'ui:title': 'Client secret reference',
-          'ui:order': ['file', 'name', 'namespace', 'type']
-        },
-        'ui:order': ['type', 'clientIDReference', 'clientSecretReference']
+        'ui:widget': 'hidden'
       },
       'ui:order': ['address', 'topic', 'tls', 'sasl']
     },
     agent: {
       'ui:title': 'Agent configuration',
-      'ui:description': 'Flows extraction.',
+      'ui:description': 'The eBPF Agent is the component that observes the traffic and generates network flows.',
       type: {
         'ui:widget': 'hidden'
       },
@@ -107,95 +94,7 @@ export const FlowCollectorUISchema: UiSchema = {
           'ui:descriptionFirst': 'true'
         },
         flowFilter: {
-          'ui:title': 'Filters',
-          'ui:description': 'The eBPF agent configuration regarding flow filtering.',
-          'ui:widget': 'hidden',
-          enable: {
-            'ui:title': 'Enable flow filtering'
-          },
-          tcpFlags: {
-            'ui:widget': 'hidden'
-          },
-          sampling: {
-            'ui:widget': 'hidden'
-          },
-          peerIP: {
-            'ui:widget': 'hidden'
-          },
-          icmpCode: {
-            'ui:widget': 'hidden'
-          },
-          pktDrops: {
-            'ui:widget': 'hidden'
-          },
-          destPorts: {
-            'ui:widget': 'hidden'
-          },
-          ports: {
-            'ui:widget': 'hidden'
-          },
-          cidr: {
-            'ui:widget': 'hidden'
-          },
-          action: {
-            'ui:widget': 'hidden'
-          },
-          peerCIDR: {
-            'ui:widget': 'hidden'
-          },
-          sourcePorts: {
-            'ui:widget': 'hidden'
-          },
-          icmpType: {
-            'ui:widget': 'hidden'
-          },
-          protocol: {
-            'ui:widget': 'hidden'
-          },
-          direction: {
-            'ui:widget': 'hidden'
-          },
-          rules: {
-            'ui:title': 'Rules',
-            'ui:description':
-              'A list of filtering rules on the eBPF Agents.\nWhen filtering is enabled, by default, flows that don\'t match any rule are rejected.\nTo change the default, you can define a rule that accepts everything: `{ action: "Accept", cidr: "0.0.0.0/0" }`, and then refine with rejecting rules. Unsupported.',
-            items: {
-              'ui:order': [
-                'tcpFlags',
-                'sampling',
-                'peerIP',
-                'icmpCode',
-                'pktDrops',
-                'destPorts',
-                'ports',
-                'cidr',
-                'action',
-                'peerCIDR',
-                'sourcePorts',
-                'icmpType',
-                'protocol',
-                'direction'
-              ]
-            }
-          },
-          'ui:order': [
-            'enable',
-            'rules',
-            'tcpFlags',
-            'sampling',
-            'peerIP',
-            'icmpCode',
-            'pktDrops',
-            'destPorts',
-            'ports',
-            'cidr',
-            'action',
-            'peerCIDR',
-            'sourcePorts',
-            'icmpType',
-            'protocol',
-            'direction'
-          ]
+          'ui:widget': 'hidden'
         },
         interfaces: {
           'ui:title': 'Interfaces',
@@ -208,257 +107,32 @@ export const FlowCollectorUISchema: UiSchema = {
             'The interface names that are excluded from flow tracing.\nAn entry enclosed by slashes, such as `/br-/`, is matched as a regular expression.\nOtherwise it is matched as a case-sensitive string.'
         },
         logLevel: {
-          'ui:title': 'Log level',
-          'ui:description': 'The log level for the network observability eBPF Agent'
+          'ui:widget': 'hidden'
         },
         imagePullPolicy: {
-          'ui:title': 'Image pull policy',
-          'ui:description': 'The Kubernetes pull policy for the image defined above'
+          'ui:widget': 'hidden'
         },
         metrics: {
-          'ui:title': 'Metrics',
-          'ui:description': 'The eBPF agent configuration regarding metrics.',
-          enable: {
-            'ui:widget': 'hidden'
-          },
-          disableAlerts: {
-            'ui:title': 'Disable alerts'
-          },
-          server: {
-            'ui:title': 'Server',
-            port: {
-              'ui:title': 'Port'
-            },
-            'ui:order': ['port', 'tls'],
-            tls: {
-              'ui:order': ['type', 'insecureSkipVerify', 'provided', 'providedCaFile'],
-              provided: {
-                'ui:order': ['certFile', 'certKey', 'name', 'namespace', 'type']
-              },
-              providedCaFile: {
-                'ui:order': ['file', 'name', 'namespace', 'type']
-              }
-            }
-          },
-          'ui:order': ['enable', 'disableAlerts', 'server']
+          'ui:widget': 'hidden'
         },
         cacheMaxFlows: {
           'ui:title': 'Cache max flows',
           'ui:description':
-            'The max number of flows in an aggregate; when reached, the reporter sends the flows.\nIncreasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,\nhowever you can expect higher memory consumption and an increased latency in the flow collection.'
+            'The max number of flows in an aggregate; when reached, the reporter sends the flows. Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load, however you can expect higher memory consumption and an increased latency in the flow collection.'
         },
         cacheActiveTimeout: {
           'ui:title': 'Cache active timeout',
           'ui:description':
-            'The max period during which the reporter aggregates flows before sending.\nIncreasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load,\nhowever you can expect higher memory consumption and an increased latency in the flow collection.'
+            'The max period during which the reporter aggregates flows before sending. Increasing `cacheMaxFlows` and `cacheActiveTimeout` can decrease the network traffic overhead and the CPU load, however you can expect higher memory consumption and an increased latency in the flow collection.'
         },
         kafkaBatchSize: {
-          'ui:title': 'Kafka batch size',
-          'ui:description':
-            'Limits the maximum size of a request in bytes before being sent to a partition. Ignored when not using Kafka. Default: 1MB.',
-          'ui:dependency': {
-            controlFieldPath: ['deploymentModel'],
-            controlFieldValue: 'Kafka',
-            controlFieldName: 'deploymentModel'
-          }
+          'ui:widget': 'hidden'
         },
         resources: {
-          'ui:title': 'Resource Requirements',
           'ui:widget': 'hidden',
-          'ui:order': ['claims', 'limits', 'requests'],
-          claims: {
-            items: {
-              'ui:order': ['name', 'request']
-            }
-          }
         },
         advanced: {
-          'ui:title': 'Advanced configuration',
-          'ui:widget': 'hidden',
-          'ui:order': ['env', 'scheduling'],
-          scheduling: {
-            'ui:widget': 'hidden',
-            affinity: {
-              'ui:order': ['nodeAffinity', 'podAffinity', 'podAntiAffinity'],
-              nodeAffinity: {
-                'ui:order': [
-                  'preferredDuringSchedulingIgnoredDuringExecution',
-                  'requiredDuringSchedulingIgnoredDuringExecution'
-                ],
-                preferredDuringSchedulingIgnoredDuringExecution: {
-                  items: {
-                    'ui:order': ['preference', 'weight'],
-                    preference: {
-                      'ui:order': ['matchExpressions', 'matchFields'],
-                      matchExpressions: {
-                        items: {
-                          'ui:order': ['key', 'operator', 'values']
-                        }
-                      },
-                      matchFields: {
-                        items: {
-                          'ui:order': ['key', 'operator', 'values']
-                        }
-                      }
-                    }
-                  }
-                },
-                requiredDuringSchedulingIgnoredDuringExecution: {
-                  nodeSelectorTerms: {
-                    items: {
-                      'ui:order': ['matchExpressions', 'matchFields'],
-                      matchExpressions: {
-                        items: {
-                          'ui:order': ['key', 'operator', 'values']
-                        }
-                      },
-                      matchFields: {
-                        items: {
-                          'ui:order': ['key', 'operator', 'values']
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              podAffinity: {
-                'ui:order': [
-                  'preferredDuringSchedulingIgnoredDuringExecution',
-                  'requiredDuringSchedulingIgnoredDuringExecution'
-                ],
-                preferredDuringSchedulingIgnoredDuringExecution: {
-                  items: {
-                    'ui:order': ['podAffinityTerm', 'weight'],
-                    podAffinityTerm: {
-                      'ui:order': [
-                        'topologyKey',
-                        'labelSelector',
-                        'matchLabelKeys',
-                        'mismatchLabelKeys',
-                        'namespaceSelector',
-                        'namespaces'
-                      ],
-                      labelSelector: {
-                        'ui:order': ['matchExpressions', 'matchLabels'],
-                        matchExpressions: {
-                          items: {
-                            'ui:order': ['key', 'operator', 'values']
-                          }
-                        }
-                      },
-                      namespaceSelector: {
-                        'ui:order': ['matchExpressions', 'matchLabels'],
-                        matchExpressions: {
-                          items: {
-                            'ui:order': ['key', 'operator', 'values']
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                requiredDuringSchedulingIgnoredDuringExecution: {
-                  items: {
-                    'ui:order': [
-                      'topologyKey',
-                      'labelSelector',
-                      'matchLabelKeys',
-                      'mismatchLabelKeys',
-                      'namespaceSelector',
-                      'namespaces'
-                    ],
-                    labelSelector: {
-                      'ui:order': ['matchExpressions', 'matchLabels'],
-                      matchExpressions: {
-                        items: {
-                          'ui:order': ['key', 'operator', 'values']
-                        }
-                      }
-                    },
-                    namespaceSelector: {
-                      'ui:order': ['matchExpressions', 'matchLabels'],
-                      matchExpressions: {
-                        items: {
-                          'ui:order': ['key', 'operator', 'values']
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              podAntiAffinity: {
-                'ui:order': [
-                  'preferredDuringSchedulingIgnoredDuringExecution',
-                  'requiredDuringSchedulingIgnoredDuringExecution'
-                ],
-                preferredDuringSchedulingIgnoredDuringExecution: {
-                  items: {
-                    'ui:order': ['podAffinityTerm', 'weight'],
-                    podAffinityTerm: {
-                      'ui:order': [
-                        'topologyKey',
-                        'labelSelector',
-                        'matchLabelKeys',
-                        'mismatchLabelKeys',
-                        'namespaceSelector',
-                        'namespaces'
-                      ],
-                      labelSelector: {
-                        'ui:order': ['matchExpressions', 'matchLabels'],
-                        matchExpressions: {
-                          items: {
-                            'ui:order': ['key', 'operator', 'values']
-                          }
-                        }
-                      },
-                      namespaceSelector: {
-                        'ui:order': ['matchExpressions', 'matchLabels'],
-                        matchExpressions: {
-                          items: {
-                            'ui:order': ['key', 'operator', 'values']
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                requiredDuringSchedulingIgnoredDuringExecution: {
-                  items: {
-                    'ui:order': [
-                      'topologyKey',
-                      'labelSelector',
-                      'matchLabelKeys',
-                      'mismatchLabelKeys',
-                      'namespaceSelector',
-                      'namespaces'
-                    ],
-                    labelSelector: {
-                      'ui:order': ['matchExpressions', 'matchLabels'],
-                      matchExpressions: {
-                        items: {
-                          'ui:order': ['key', 'operator', 'values']
-                        }
-                      }
-                    },
-                    namespaceSelector: {
-                      'ui:order': ['matchExpressions', 'matchLabels'],
-                      matchExpressions: {
-                        items: {
-                          'ui:order': ['key', 'operator', 'values']
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            tolerations: {
-              items: {
-                'ui:order': ['effect', 'key', 'operator', 'tolerationSeconds', 'value']
-              }
-            },
-            'ui:order': ['affinity', 'nodeSelector', 'priorityClassName', 'tolerations']
-          }
+          'ui:widget': 'hidden'
         },
         'ui:order': [
           'sampling',
