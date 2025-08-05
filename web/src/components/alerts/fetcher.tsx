@@ -16,7 +16,7 @@ export const AlertFetcher: React.FC<AlertFetcherProps> = ({ children }) => {
         setAlerts(
           result.data.groups.flatMap(group => {
             return group.rules
-              .filter(rule => !!rule.labels.app && rule.labels.app == 'netobserv' && rule.state == 'firing')
+              .filter(rule => rule.state == 'firing' && !('netobserv_io_health' in rule.annotations))
               .map(rule => {
                 const key = [
                   group.file,

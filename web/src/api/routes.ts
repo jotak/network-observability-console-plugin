@@ -33,7 +33,7 @@ export const getFlowRecords = (params: FlowQuery): Promise<RecordsResult> => {
 };
 
 export const getAlerts = (): Promise<AlertsResult> => {
-  return axios.get('/api/prometheus/api/v1/rules?type=alert').then(r => {
+  return axios.get('/api/prometheus/api/v1/rules?type=alert&match%5B%5D=%7Bapp%3D%22netobserv%22%7D').then(r => {
     if (r.status >= 400) {
       throw new Error(`${r.statusText} [code=${r.status}]`);
     }
