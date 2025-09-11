@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/prometheus/common/model"
@@ -125,12 +126,14 @@ func createRule(probability float64, name, severity string, threshold, upperBoun
 		}
 		jsonNodeLbl = fmt.Sprintf(`"nodeLabels":[%s],`, strings.Join(quotedLbl, ","))
 	}
+	searchURL := "https://duckduckgo.com/?q=" + url.PathEscape(name)
 	annotations["netobserv_io_network_health"] = model.LabelValue(fmt.Sprintf(
-		`{%s%s"threshold":"%d","upperBound":"%d","unit":"%%"}`,
+		`{%s%s"threshold":"%d","upperBound":"%d","unit":"%%","links":[{"name":"Search the web", "url": "%s"}]}`,
 		jsonNsLbl,
 		jsonNodeLbl,
 		threshold,
 		upperBound,
+		searchURL,
 	))
 	ruleLabels := labels.Clone()
 	ruleLabels["prometheus"] = "openshift-monitoring/k8s"

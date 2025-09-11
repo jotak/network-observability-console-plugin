@@ -43,7 +43,7 @@ export const HealthGlobal: React.FC<HealthGlobalProps> = ({ info, isDark }) => {
             <HealthCard isDark={isDark} stats={info} isSelected={false} />
           </GridItem>
           <GridItem span={9}>
-            <RuleDetails info={info} header={true} />
+            <RuleDetails info={info} wide={true} />
           </GridItem>
         </Grid>
       )}

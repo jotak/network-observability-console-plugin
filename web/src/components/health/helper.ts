@@ -34,13 +34,14 @@ type RuleWithMetadata = Rule & {
 };
 
 type HealthMetadata = {
-  threshold: string;
-  thresholdF: number;
-  upperBound: string;
-  upperBoundF: number;
-  unit: string;
+  threshold?: string;
+  thresholdF?: number;
+  upperBound?: string;
+  upperBoundF?: number;
+  unit?: string;
   nodeLabels?: string[];
   namespaceLabels?: string[];
+  links?: { name: string; url: string }[];
 };
 
 type ScoreDetail = {
@@ -52,8 +53,8 @@ export const getHealthMetadata = (annotations: PrometheusLabels): HealthMetadata
   if ('netobserv_io_network_health' in annotations) {
     const md = (JSON.parse(annotations['netobserv_io_network_health']) as HealthMetadata) || undefined;
     if (md) {
-      md.thresholdF = parseFloat(md.threshold) || 0;
-      md.upperBoundF = parseFloat(md.upperBound) || 0;
+      md.thresholdF = parseFloat(md.threshold || '0') || 0;
+      md.upperBoundF = parseFloat(md.upperBound || '100') || 100;
     }
     return md;
   }

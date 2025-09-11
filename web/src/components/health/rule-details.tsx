@@ -1,26 +1,23 @@
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import * as React from 'react';
 
-import { Label } from '@patternfly/react-core';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import { valueFormat } from '../../utils/format';
-import { HealthColorSquare } from './health-color-square';
-import { ByResource, getAlertFilteredLabels, getAlertLink, getAllAlerts, getHealthMetadata } from './helper';
+import { AlertRow, AlertSummaryCell } from './alert-row';
+import { ByResource, getAllAlerts } from './helper';
 
 export interface RuleDetailsProps {
   info: ByResource;
-  header: boolean;
+  wide: boolean;
 }
 
-export const RuleDetails: React.FC<RuleDetailsProps> = ({ info, header }) => {
+export const RuleDetails: React.FC<RuleDetailsProps> = ({ info, wide }) => {
   const { t } = useTranslation('plugin__netobserv-plugin');
 
   const allAlerts = getAllAlerts(info);
 
   return (
     <Table data-test-rows-count={allAlerts.length} aria-label="Detailed alerting rules" variant="compact">
-      {header && (
+      {wide && (
         <Thead>
           <Th>{t('Summary')}</Th>
           <Th>{t('State')}</Th>
@@ -28,73 +25,26 @@ export const RuleDetails: React.FC<RuleDetailsProps> = ({ info, header }) => {
           <Th>{t('Labels')}</Th>
           <Th>{t('Value')}</Th>
           <Th>{t('Description')}</Th>
+          <Th screenReaderText="Links" />
         </Thead>
       )}
-      {header ? (
+      {wide ? (
         <Tbody>
-          {allAlerts.map((a, i) => {
-            const md = getHealthMetadata(a.annotations);
-            const labels = getAlertFilteredLabels(a, info.name);
-            return (
-              <Tr key={'detailed-rules-row-' + i}>
-                <Td>
-                  <HealthColorSquare alert={a} />
-                  <Link to={getAlertLink(a)} title={t('Navigate to alert details')}>
-                    {a.annotations['summary']}
-                  </Link>
-                </Td>
-                <Td>{a.state}</Td>
-                <Td>{a.labels.severity}</Td>
-                <Td>
-                  {labels.length === 0
-                    ? t('None')
-                    : labels.map(kv => (
-                        <Label key={kv[0]}>
-                          {kv[0]}={kv[1]}
-                        </Label>
-                      ))}
-                </Td>
-                <Td>
-                  {valueFormat(a.value as number, 2)}
-                  {md?.threshold && ' > ' + md.threshold + ' ' + md.unit}
-                </Td>
-                <Td>{a.annotations['description']}</Td>
-              </Tr>
-            );
-          })}
+          {allAlerts.map((a, i) => (
+            <AlertRow key={'detailed-rules-row-' + i} alert={a} resourceName={info.name} wide={wide} />
+          ))}
         </Tbody>
       ) : (
         allAlerts.map((a, i) => {
-          // in non-detailed mode, alert summaries take full cols span, and the other fields are displayed below; requires to have Tbody within Tr.
-          const md = getHealthMetadata(a.annotations);
-          const labels = getAlertFilteredLabels(a, info.name);
+          // in non-detailed mode, alert summaries take full cols span, and the other fields are displayed below; requires to have a Tbody for each row.
           return (
             <Tbody key={'detailed-rules-row-' + i} isExpanded>
               <Tr isExpanded>
                 <Td noPadding colSpan={4}>
-                  <HealthColorSquare alert={a} />
-                  <Link to={getAlertLink(a)} title={t('Navigate to alert details')}>
-                    {a.annotations['summary']}
-                  </Link>
+                  <AlertSummaryCell alert={a} showTooltip={true} />
                 </Td>
               </Tr>
-              <Tr>
-                <Td noPadding>{a.state}</Td>
-                <Td>{a.labels.severity}</Td>
-                <Td>
-                  {labels.length === 0
-                    ? t('None')
-                    : labels.map(kv => (
-                        <Label key={kv[0]}>
-                          {kv[0]}={kv[1]}
-                        </Label>
-                      ))}
-                </Td>
-                <Td>
-                  {valueFormat(a.value as number, 2)}
-                  {md?.threshold && ' > ' + md.threshold + ' ' + md.unit}
-                </Td>
-              </Tr>
+              <AlertRow alert={a} resourceName={info.name} wide={wide} />
             </Tbody>
           );
         })

@@ -109,7 +109,7 @@ export const HealthDrawerContainer: React.FC<HealthDrawerContainerProps> = ({ ti
               </DrawerHead>
               {selectedResource && (
                 <div className="health-gallery-drawer-content">
-                  <RuleDetails info={selectedResource} header={false} />
+                  <RuleDetails info={selectedResource} wide={false} />
                 </div>
               )}
             </DrawerPanelContent>
