@@ -7,11 +7,11 @@ describe('(OCP-71787) Conversation tracking test', { tags: ['Network_Observabili
         cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
             cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
             cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+            
+            Operator.install()
+            cy.checkStorageClass(this)
+            Operator.createFlowcollector("Conversations")
         })
-
-        Operator.install()
-        cy.checkStorageClass(this)
-        Operator.createFlowcollector("Conversations")
     })
 
     beforeEach('any conversation tracking test', function () {

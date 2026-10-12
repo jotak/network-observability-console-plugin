@@ -11,11 +11,11 @@ describe('(OCP-66141) PacketDrop test', { tags: ['Network_Observability'] }, fun
         cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
             cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
             cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+            
+            Operator.install()
+            cy.checkStorageClass(this)
+            Operator.createFlowcollector("PacketDrop")
         })
-
-        Operator.install()
-        cy.checkStorageClass(this)
-        Operator.createFlowcollector("PacketDrop")
     })
 
     beforeEach('any packetDrop test', function () {

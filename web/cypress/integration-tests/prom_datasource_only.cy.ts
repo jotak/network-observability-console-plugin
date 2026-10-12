@@ -7,10 +7,10 @@ describe('(OCP-74049, OCP-73875) Prometheus datasource only', { tags: ['Network_
         cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
             cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
             cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+            
+            Operator.install()
+            Operator.createFlowcollector("LokiDisabled")
         })
-
-        Operator.install()
-        Operator.createFlowcollector("LokiDisabled")
     })
 
     it('(OCP-74049, aramesha), Verify Prom dataSource in Administrator view as cluster-admin user', function () {
@@ -34,6 +34,7 @@ describe('(OCP-74049, OCP-73875) Prometheus datasource only', { tags: ['Network_
             cy.byTestID('resource').should('not.exist')
         })
     })
+
     after("after all tests", function () {
         Operator.deleteFlowCollector()
         cy.env(['LOGIN_USERNAME']).then(({ LOGIN_USERNAME }) => {

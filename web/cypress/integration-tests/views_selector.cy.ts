@@ -11,12 +11,11 @@ describe('(NETOBSERV-2872) Views selector tests', { tags: ['Network_Observabilit
         cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
             cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
             cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+            
+            Operator.install()
+            cy.checkStorageClass(this)
+            Operator.createFlowcollector("AllFeatures")
         })
-
-        Operator.install()
-        cy.checkStorageClass(this)
-        Operator.createFlowcollector("AllFeatures")
-
     })
 
     beforeEach('view selector test', function () {

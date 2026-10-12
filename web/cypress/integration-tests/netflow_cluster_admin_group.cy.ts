@@ -10,11 +10,11 @@ describe.skip('(OCP-67617) User in group with cluster-admin role', { tags: ['Net
             cy.adminCLI(`oc adm groups add-users netobservadmins ${LOGIN_USERNAME}`)
             cy.adminCLI(`oc adm policy add-cluster-role-to-group cluster-admin netobservadmins`)
             cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+            
+            Operator.install()
+            cy.checkStorageClass(this)
+            Operator.createFlowcollector()
         })
-
-        Operator.install()
-        cy.checkStorageClass(this)
-        Operator.createFlowcollector()
     })
 
     it("(OCP-67617, aramesha) should verify user in group with cluster-admin role is able to access flows", function () {

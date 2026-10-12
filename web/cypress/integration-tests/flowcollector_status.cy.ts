@@ -7,11 +7,11 @@ describe('Network_Observability FlowCollector status error scenario', { tags: ['
         cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
             cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
             cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+            
+            Operator.install()
+            cy.checkStorageClass(this)
+            Operator.createFlowcollector("WithLokiStack")
         })
-
-        Operator.install()
-        cy.checkStorageClass(this)
-        Operator.createFlowcollector("WithLokiStack")
     })
 
     it("(OCP-88744, kapjain) Verify error status when Loki enabled without LokiStack", function () {

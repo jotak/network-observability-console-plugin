@@ -7,11 +7,11 @@ describe('(OCP-54839) Netflow Overview page tests', { tags: ['Network_Observabil
         cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
             cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
             cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+            
+            Operator.install()
+            cy.checkStorageClass(this)
+            Operator.createFlowcollector()
         })
-
-        Operator.install()
-        cy.checkStorageClass(this)
-        Operator.createFlowcollector()
     })
 
     beforeEach('overview page test', function () {

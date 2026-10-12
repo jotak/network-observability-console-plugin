@@ -16,11 +16,11 @@ describe.skip('NetObserv developer view', { tags: ['Network_Observability'] }, f
             idp = LOGIN_IDP;
             cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${user1}`)
             cy.uiLogin(idp, user1, user1Passwd)
+            
+            Operator.install()
+            cy.checkStorageClass(this)
+            Operator.createFlowcollector()
         })
-
-        Operator.install()
-        cy.checkStorageClass(this)
-        Operator.createFlowcollector()
     })
 
     it("(OCP-75874, aramesha) should verify developer view - Loki DataSource", function () {

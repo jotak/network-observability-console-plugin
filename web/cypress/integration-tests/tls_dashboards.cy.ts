@@ -13,15 +13,16 @@ describe('(OCP-88966) TLSTracking test', { tags: ['Network_Observability'] }, fu
         cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
             cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
             cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+            
+            Operator.install()
+            cy.checkStorageClass(this)
+            Operator.createFlowcollector("TLSTracking")
+            
+            // Deploy TLS test server and client
+            cy.adminCLI('oc apply -f cypress/fixtures/test-tls-server-client.yaml')
+            cy.wait(10000)
         })
 
-        Operator.install()
-        cy.checkStorageClass(this)
-        Operator.createFlowcollector("TLSTracking")
-
-        // Deploy TLS test server and client
-        cy.adminCLI('oc apply -f cypress/fixtures/test-tls-server-client.yaml')
-        cy.wait(10000)
         cy.adminCLI('oc wait --for=condition=Available deployment/tls-server -n test-tls-server --timeout=180s', { timeout: 200000 })
         cy.adminCLI('oc wait --for=condition=Ready pod -n test-tls-client -l app=tls-client --timeout=120s', { timeout: 140000 })
     })
