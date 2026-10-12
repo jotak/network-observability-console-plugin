@@ -1,12 +1,6 @@
 import { colSelectors, netflowPage, overviewSelectors, topologySelectors, viewSelectors } from "@views/netflow-page"
 import { Operator } from "@views/netobserv"
 
-// Feature view preset panels — shared with overviewSelectors (aligned to views.ts)
-const pktDropPanels = overviewSelectors.defaultPacketDropPanels
-const dnsPanels = overviewSelectors.defaultDNSTrackingPanels
-const rttPanels = overviewSelectors.defaultFlowRTTPanels
-const tlsPanels = overviewSelectors.defaultTLSTrackingPanels
-
 // Generic panel not in any feature preset but default-selected on the Default view
 const genericPanel = 'top_avg_byte_rates'
 const genericPanelTitle = 'Top 5 average bytes rates'

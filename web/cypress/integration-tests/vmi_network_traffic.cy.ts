@@ -1,6 +1,5 @@
 import "@views/netobserv"
 import { Operator } from "@views/netobserv"
-import {wait} from "fork-ts-checker-webpack-plugin/lib/utils/async/wait";
 
 const VMI_NAMESPACE = "test-vm"
 const VMI_NAME = "test-vm"
@@ -9,8 +8,10 @@ describe('(OCP-90529) Network Traffic Tab on VMI Page', { tags: ['Network_Observ
 
     before('setup', function () {
         // Add cluster admin role and login first (like other tests)
-        cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${Cypress.env('LOGIN_USERNAME')}`)
-        cy.uiLogin(Cypress.env('LOGIN_IDP'), Cypress.env('LOGIN_USERNAME'), Cypress.env('LOGIN_PASSWORD'))
+        cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
+            cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
+            cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+        })
         Operator.install()
         cy.checkStorageClass(this)
         // KubeVirt's software emulation defaults to CPU mode 'host-passthrough', which
@@ -92,7 +93,7 @@ describe('(OCP-90529) Network Traffic Tab on VMI Page', { tags: ['Network_Observ
         )
 
         // Wait for flows to be ingested into Loki by polling flow-collector logs
-        cy.adminCLI(`oc logs -n netobserv -l app=netobserv-plugin,component=flow-collector --tail=100 2>/dev/null | grep -i "packet\\|flow" || echo "waiting"`, { retries: 120, interval: 5000 })
+        cy.adminCLI(`oc logs -n netobserv -l app=netobserv-plugin,component=flow-collector --tail=100 2>/dev/null | grep -i "packet\\|flow" || echo "waiting"`)
         cy.wait(180000)
 
     })
@@ -143,7 +144,7 @@ describe('(OCP-90529) Network Traffic Tab on VMI Page', { tags: ['Network_Observ
         // Check if Network Traffic tab is present, scroll into view and click it
         cy.get('[data-test-id="horizontal-link-Network Traffic"]', { timeout: 60000 })
           .should('exist')
-          .scrollIntoView({ behavior: 'smooth', block: 'center' })
+          .scrollIntoView()
         cy.wait(1000)
         // The virtualization page rerenders its tabs after scrolling; acquire a
         // fresh subject before clicking to avoid a detached-element failure.
@@ -172,6 +173,8 @@ describe('(OCP-90529) Network Traffic Tab on VMI Page', { tags: ['Network_Observ
             cy.adminCLI('oc delete configmap cdi-apiserver-signer-bundle -n openshift-cnv --wait=false', { failOnNonZeroExit: false } as any)
         }
 
-        cy.adminCLI(`oc adm policy remove-cluster-role-from-user cluster-admin ${Cypress.env('LOGIN_USERNAME')}`)
+        cy.env(['LOGIN_USERNAME']).then(({ LOGIN_USERNAME }) => {
+            cy.adminCLI(`oc adm policy remove-cluster-role-from-user cluster-admin ${LOGIN_USERNAME}`)
+        })
     })
 })
