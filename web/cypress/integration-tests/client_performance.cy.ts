@@ -3,14 +3,12 @@ import { Operator } from "@views/netobserv"
 
 describe("(OCP-67725, memodi) Network_Observability Client Performances", { browser: 'chrome', tags: ['Performance'] }, function () {
     before("tests", function () {
-        cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
-            cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
-            cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+        cy.setAsClusterAdmin();
+        cy.uiLoginDefaultUser();
 
-            Operator.install()
-            cy.checkStorageClass(this)
-            Operator.createFlowcollector()
-        })
+        Operator.install()
+        cy.checkStorageClass(this)
+        Operator.createFlowcollector()
     })
 
     beforeEach("test", function () {
@@ -88,8 +86,6 @@ describe("(OCP-67725, memodi) Network_Observability Client Performances", { brow
     })
 
     after("all tests", function () {
-        cy.env(['LOGIN_USERNAME']).then(({ LOGIN_USERNAME }) => {
-            cy.adminCLI(`oc adm policy remove-cluster-role-from-user cluster-admin ${LOGIN_USERNAME}`)
-        })
+        cy.unsetAsClusterAdmin()
     })
 })

@@ -17,13 +17,11 @@ const bytesHTTP = [
 describe('Network_Observability networking dashboards tests', { tags: ['Network_Observability'] }, function () {
 
     before('any test', function () {
-        cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
-            cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
-            cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+        cy.setAsClusterAdmin();
+        cy.uiLoginDefaultUser();
             
-            // navigate to 'Networking / Ingress' Dashboard page (retry-with-reload until registered)
-            dashboard.visitDashboard('grafana-dashboard-ingress-operator')
-        })
+        // navigate to 'Networking / Ingress' Dashboard page (retry-with-reload until registered)
+        dashboard.visitDashboard('grafana-dashboard-ingress-operator')
     })
 
     it('(OCP-69946, aramesha), should have ingress operator dashboards', function () {
@@ -58,8 +56,6 @@ describe('Network_Observability networking dashboards tests', { tags: ['Network_
     })
 
     after("all tests", function () {
-        cy.env(['LOGIN_USERNAME']).then(({ LOGIN_USERNAME }) => {
-            cy.adminCLI(`oc adm policy remove-cluster-role-from-user cluster-admin ${LOGIN_USERNAME}`)
-        })
+        cy.unsetAsClusterAdmin()
     })
 })

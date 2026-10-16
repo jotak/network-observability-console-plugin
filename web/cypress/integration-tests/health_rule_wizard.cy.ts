@@ -32,19 +32,17 @@ const waitForCLI = (command: string, check: (stdout: string) => boolean, retries
 describe('(OCP-90524) Network_Observability health rule wizard (write path)', { tags: ['Network_Observability'] }, function () {
 
     before('setup', function () {
-        cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
-            cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
-            cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+        cy.setAsClusterAdmin();
+        cy.uiLoginDefaultUser();
             
-            Operator.install()
-            cy.checkStorageClass(this)
-            // The wizard/rules feature is Prometheus-only (gated on CAN_LIST_NS, not Loki), so the
-            // lightest sufficient FlowCollector is Loki-disabled - no Loki pod to deploy or wait on.
-            Operator.createFlowcollector("LokiDisabled")
-            
-            // Clean up any leftover from a previous run so create/list assertions are deterministic.
-            cy.adminCLI(`oc delete prometheusrule ${CUSTOM_RULE_NAME} -n ${RULE_NS} --ignore-not-found`)
-        })
+        Operator.install()
+        cy.checkStorageClass(this)
+        // The wizard/rules feature is Prometheus-only (gated on CAN_LIST_NS, not Loki), so the
+        // lightest sufficient FlowCollector is Loki-disabled - no Loki pod to deploy or wait on.
+        Operator.createFlowcollector("LokiDisabled")
+        
+        // Clean up any leftover from a previous run so create/list assertions are deterministic.
+        cy.adminCLI(`oc delete prometheusrule ${CUSTOM_RULE_NAME} -n ${RULE_NS} --ignore-not-found`)
     })
 
     beforeEach('any health rule wizard test', function () {
@@ -197,8 +195,6 @@ describe('(OCP-90524) Network_Observability health rule wizard (write path)', { 
     after('all tests', function () {
         cy.adminCLI(`oc delete prometheusrule ${CUSTOM_RULE_NAME} -n ${RULE_NS} --ignore-not-found`)
         Operator.deleteFlowCollector()
-        cy.env(['LOGIN_USERNAME']).then(({ LOGIN_USERNAME }) => {
-            cy.adminCLI(`oc adm policy remove-cluster-role-from-user cluster-admin ${LOGIN_USERNAME}`)
-        })
+        cy.unsetAsClusterAdmin()
     })
 })

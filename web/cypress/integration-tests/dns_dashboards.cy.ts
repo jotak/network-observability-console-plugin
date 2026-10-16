@@ -26,14 +26,12 @@ const DNSPanels = [
 describe('(OCP-67087) DNSTracking test', { tags: ['Network_Observability'] }, function () {
 
     before('any test', function () {
-        cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
-            cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`)
-            cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD)
+        cy.setAsClusterAdmin();
+        cy.uiLoginDefaultUser();
             
-            Operator.install()
-            cy.checkStorageClass(this)
-            Operator.createFlowcollector("DNSTracking")
-        })
+        Operator.install()
+        cy.checkStorageClass(this)
+        Operator.createFlowcollector("DNSTracking")
     })
 
     it("(OCP-67087, aramesha) Validate DNSLatencies edge label and Query Summary stats", function () {
@@ -77,8 +75,6 @@ describe('(OCP-67087) DNSTracking test', { tags: ['Network_Observability'] }, fu
 
     after("all tests", function () {
         Operator.deleteFlowCollector()
-        cy.env(['LOGIN_USERNAME']).then(({ LOGIN_USERNAME }) => {
-            cy.adminCLI(`oc adm policy remove-cluster-role-from-user cluster-admin ${LOGIN_USERNAME}`)
-        })
+        cy.unsetAsClusterAdmin()
     })
 })

@@ -305,6 +305,20 @@ Cypress.Commands.add('adminCLI', (command: string, options?: Partial<Cypress.Exe
   });
 });
 
+// Set the LOGIN_USERNAME from env as cluster admin
+Cypress.Commands.add('setAsClusterAdmin', () => {
+  cy.env(['LOGIN_USERNAME']).then(({ LOGIN_USERNAME }) => {
+    cy.adminCLI(`oc adm policy add-cluster-role-to-user cluster-admin ${LOGIN_USERNAME}`);
+  });
+});
+
+// Unset the LOGIN_USERNAME from env as cluster admin
+Cypress.Commands.add('unsetAsClusterAdmin', () => {
+  cy.env(['LOGIN_USERNAME']).then(({ LOGIN_USERNAME }) => {
+    cy.adminCLI(`oc adm policy remove-cluster-role-from-user cluster-admin ${LOGIN_USERNAME}`);
+  });
+});
+
 // to avoid influence from upstream login change
 Cypress.Commands.add('uiLogin', (provider: string, username: string, password: string) => {
   const baseUrl = Cypress.config('baseUrl');
@@ -345,6 +359,13 @@ Cypress.Commands.add('uiLogin', (provider: string, username: string, password: s
 
   // Wait for redirect back and verify login
   cy.byTestID("username", { timeout: 120000 }).should('be.visible');
+});
+
+// Login using the default user credentials from env
+Cypress.Commands.add('uiLoginDefaultUser', () => {
+  cy.env(['LOGIN_IDP', 'LOGIN_USERNAME', 'LOGIN_PASSWORD']).then(({ LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD }) => {
+    cy.uiLogin(LOGIN_IDP, LOGIN_USERNAME, LOGIN_PASSWORD);
+  });
 });
 
 Cypress.Commands.add('uiLogout', () => {
@@ -439,8 +460,11 @@ declare global {
       checkRecordField(field: string, name: string, values: string[]): Chainable<void>
       clickShowDuplicates(): Chainable<void>
       adminCLI(command: string, options?: Partial<Cypress.ExecOptions>): Chainable<Cypress.Exec>
+      setAsClusterAdmin(): Chainable<Cypress.Exec>
+      unsetAsClusterAdmin(): Chainable<Cypress.Exec>
       clearNetobservLocalStorage(): Chainable<void>
       uiLogin(provider: string, username: string, password: string): Chainable<void>
+      uiLoginDefaultUser(): Chainable<void>
       uiLogout(): Chainable<void>
       cliLogin(username?: string, password?: string): Chainable<void>
       switchPerspective(perspective: string): Chainable<void>
