@@ -14,7 +14,7 @@ export const parseDuration = (duration: string): number => {
   let result = null,
     lastSuccessIndex = 0;
   durationRE.lastIndex = 0;
-  for (let m; (m = durationRE.exec(duration.trim())); ) {
+  for (let m; (m = durationRE.exec(duration.trim()));) {
     result = (result || 0) + +m[1] * units[m[2]];
     lastSuccessIndex = durationRE.lastIndex;
   }
