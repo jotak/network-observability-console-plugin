@@ -36,6 +36,12 @@ export class ContextSingleton {
     instance.isMock = true;
   }
 
+  // Overrides the backend host with an absolute URL, e.g. a port-forwarded
+  // backend reached from an origin that doesn't proxy /api itself (Headlamp PoC).
+  public static setHost(host: string) {
+    ContextSingleton.getInstance().host = host;
+  }
+
   public static setContext(forcedNamespace?: string) {
     const instance = ContextSingleton.getInstance();
     if (!instance.isStandalone) {

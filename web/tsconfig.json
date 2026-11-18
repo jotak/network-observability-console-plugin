@@ -1,26 +1,4 @@
 {
-  "compilerOptions": {
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "target": "es2020",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "jsx": "react",
-    "allowJs": true,
-    "experimentalDecorators": true,
-    "noImplicitAny": true,
-    "noUnusedLocals": true,
-    "skipLibCheck": true,
-    "strictNullChecks": true,
-    "isolatedModules": true,
-    "types": ["jest", "@testing-library/jest-dom"]
-  },
-  "include": [
-    "src"
-  ]
+  "extends": "./node_modules/@kinvolk/headlamp-plugin/config/plugins-tsconfig.json",
+  "include": ["./src/**/*"]
 }

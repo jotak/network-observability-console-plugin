@@ -1,6 +1,7 @@
 {
-  "name": "netobserv-plugin",
-  "version": "0.0.0",
+  "name": "netobserv-headlamp-plugin",
+  "version": "0.1.0",
+  "description": "NetObserv Headlamp plugin",
   "private": true,
   "scripts": {
     "clean": "rm -rf ./dist",
@@ -28,7 +29,18 @@
     "format-all": "prettier --write \"./src/**/*.{ts,tsx}\" && npm run fix-imports",
     "fix-imports": "eslint --no-eslintrc --no-inline-config --parser '@typescript-eslint/parser' --plugin 'unused-imports' --plugin 'react-hooks' --rule 'unused-imports/no-unused-imports:error' --fix \"./src/**/*.{ts,tsx}\"",
     "clean:cache": "rm -rf node_modules/.cache",
-    "clean:all": "npm run clean && npm run clean:cache"
+    "clean:all": "npm run clean && npm run clean:cache",
+    "headlamp:start": "headlamp-plugin start",
+    "headlamp:build": "headlamp-plugin build",
+    "headlamp:format": "headlamp-plugin format",
+    "headlamp:lint": "headlamp-plugin lint",
+    "headlamp:lint-fix": "headlamp-plugin lint --fix",
+    "headlamp:package": "headlamp-plugin package",
+    "headlamp:tsc": "headlamp-plugin tsc",
+    "headlamp:storybook": "headlamp-plugin storybook",
+    "headlamp:storybook-build": "headlamp-plugin storybook-build",
+    "headlamp:test": "headlamp-plugin test",
+    "headlamp:i18n": "headlamp-plugin i18n"
   },
   "devDependencies": {
     "@babel/core": "^7.29.6",
@@ -37,6 +49,7 @@
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
     "@cypress/grep": "^4.1.1",
+    "@kinvolk/headlamp-plugin": "^0.14.0",
     "@openshift-console/dynamic-plugin-sdk": "4.22.0",
     "@openshift-console/dynamic-plugin-sdk-webpack": "4.22.0",
     "@testing-library/dom": "^10.4.1",
@@ -83,6 +96,7 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "pretty-quick": "^4.2.2",
     "react-transition-group": "^4.4.2",
+    "sass-embedded": "^1.108.2",
     "style-loader": "^3.3.1",
     "ts-jest": "29.4.12",
     "ts-jest-resolver": "2.0.1",

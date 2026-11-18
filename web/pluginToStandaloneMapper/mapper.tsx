@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
+import type {
   K8sGroupVersionKind,
   K8sModel,
   K8sResourceKindReference,
